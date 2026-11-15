@@ -1,0 +1,4 @@
+product_id,product_name,brand_name,rating,reviews,price_usd,primary_category,secondary_category,ingredients,highlights
+P1,Glow Niacinamide Serum,DemoLab,4.5,120,28.0,Skincare,Treatments,"['Water', 'Niacinamide', 'Zinc PCA', 'Glycerin']","['Oil-free', 'Vegan']"
+P2,Barrier Cream Moisturizer,DemoLab,4.2,300,36.0,Skincare,Moisturizers,"['Water', 'Ceramide NP', 'Glycerin', 'Squalane', 'Fragrance']","['Fragrance-free claim not verified']"
+P3,Light Gel Moisturizer,SampleCo,4.0,80,22.0,Skincare,Moisturizers,"['Water', 'Hyaluronic Acid', 'Niacinamide', 'Dimethicone']","['Oil-free', 'Lightweight']"

@@ -1,0 +1,7 @@
+product_id,rating,is_recommended,review_text,review_title,skin_type,skin_tone
+P1,5,1.0,Really helped my shine by midday. No breakouts.,Love it,oily,medium
+P1,2,0.0,Made my skin sting and feel tight.,Irritating,sensitive,fair
+P1,4,1.0,Good texture. Absorbs fast. Pores look smaller.,Nice,combination,tan
+P2,5,1.0,Rich and calming. Great for dry winter skin.,Repurchase,dry,deep
+P2,3,0.0,Too heavy for me and the scent is noticeable.,Heavy,oily,light
+P3,4,1.0,Lightweight and does not feel greasy on oily skin.,Great daily,oily,medium
