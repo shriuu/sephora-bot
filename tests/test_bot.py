@@ -24,4 +24,11 @@ class T(unittest.TestCase):
     def test_asks_skin_type(self):
         st = {}; self.assertIn("skin type", self.rich("recommend something", st)["text"])
         self.assertTrue(self.rich("dry", st)["products"])
+    def test_typo_did_you_mean(self):
+        st = {}; r = self.rich("what does niacinamde do?", st)
+        self.assertEqual(r.get("didyoumean"), "what does niacinamide do?")
+        r2 = self.rich("yes", st); self.assertNotIn("didyoumean", r2); self.assertIn("niacinamide", r2["text"].lower())
+    def test_no_false_did_you_mean(self):
+        for q in ("What does niacinamide do?", "I have dry skin", "hello", "which products contain niacinamide?"):
+            self.assertNotIn("didyoumean", self.rich(q))
 if __name__ == "__main__": unittest.main()

@@ -89,7 +89,9 @@ class H(BaseHTTPRequestHandler):
         body = self.rfile.read(n)
         try:
             if self.path == "/ask":
-                q = body.decode(); st = self._state(); r = bot.ask_rich(q, st); r["suggestions"] = bot.suggest(q, state=st); return self._send(r)
+                q = body.decode(); st = self._state(); r = bot.ask_rich(q, st); r["suggestions"] = bot.suggest(q, state=st)
+                if r.get("didyoumean"): r["suggestions"] = [r["didyoumean"]] + [x for x in r["suggestions"] if x != r["didyoumean"]][:3]
+                return self._send(r)
             data = json.loads(body)
             if self.path in ("/recommend", "/match"):
                 return self._send(self._match(data))

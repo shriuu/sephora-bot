@@ -1,5 +1,5 @@
 """Router + grounded answers. Every fact is tagged with its source; opinions are labelled as reviews."""
-import random, re
+import difflib, os, random, re
 from .guardrails import *
 from .retrieval import BM25
 from . import skin as skinmod, glossary
@@ -26,13 +26,21 @@ class Concierge:
                 hits.append((pid, n)); ql = ql.replace(nl, " ")  # longest match first; consume span
         if hits or not fuzzy: return hits
         words = set(re.findall(r"[a-z]{4,}", q.lower()))
-        scored = [(len(words & set(n.lower().split())), pid, n) for pid, n in self.names.items()]
-        return [(p, n) for s, p, n in sorted(scored, reverse=True) if s >= 2][:2]
+        scored = []
+        for pid, n in self.names.items():
+            nw = {w for w in re.findall(r"[a-z]{4,}", n.lower())}
+            hit = len(words & nw)
+            if hit >= 3 and hit / max(len(nw), 1) >= 0.5: scored.append((hit, pid, n))   # most of the product's name must be in the question
+        return [(p, n) for s, p, n in sorted(scored, reverse=True)][:2]
 
     def ingredient_search(self, term, k=6):
-        rows = self.con.execute("""SELECT p.product_id,p.name,p.brand,p.price_usd,p.rating,p.n_reviews,p.subcategory FROM products p JOIN ingredients i
-            ON i.product_id=p.product_id WHERE i.ingredient LIKE ? AND p.n_reviews>=1 GROUP BY p.product_id
-            ORDER BY (p.n_reviews>=20) DESC, p.rating DESC, p.n_reviews DESC""", (f"%{term}%",)).fetchall()
+        g = glossary.find_ingredient(term)
+        terms = {term.lower().strip()} | ({a for a in glossary.INGREDIENTS[g][0]} | {g} if g else set())
+        terms |= {t[:-1] for t in terms if t.endswith("s") and len(t) > 4}      # "ceramides" -> "ceramide"
+        like = " OR ".join("i.ingredient LIKE ?" for _ in terms)
+        rows = self.con.execute(f"""SELECT p.product_id,p.name,p.brand,p.price_usd,p.rating,p.n_reviews,p.subcategory FROM products p JOIN ingredients i
+            ON i.product_id=p.product_id WHERE ({like}) AND p.n_reviews>=1 GROUP BY p.product_id
+            ORDER BY (p.n_reviews>=20) DESC, p.rating DESC, p.n_reviews DESC""", tuple(f"%{t}%" for t in terms)).fetchall()
         return len(rows), [dict(id=r[0], name=r[1], brand=r[2], price=r[3], rating=round(r[4] or 0, 1), reviews=r[5], type=r[6],
                                 why=[f"Contains {term}"]) for r in rows[:k]]
 
@@ -111,7 +119,7 @@ class Concierge:
                         f"I picked these with {who} skin in mind. They're well reviewed and have ingredients that tend to help.",
                         f"These should suit {who} skin nicely. Take a look and tell me if you'd like something lighter, richer or cheaper.")
         m = re.search(r"contain(?:s)?\s+([a-z\- ]+?)\??$", q.strip().lower()) or re.search(r"\b(niacinamide|ceramide|retinol|hyaluronic acid|squalane|glycerin)\b", q.lower())
-        prods = self.find_products(q)
+        prods = self.find_products(q, fuzzy=not re.search(r"\bcontain", ql))
         if len(prods) > 1 and not self.find_products(q, fuzzy=False) and not re.search(r"\b(vs|versus|compare|difference)\b", ql): prods = prods[:1]   # loose match: pick the best one
         if m and not prods:
             term = m.group(1).strip(); total, cards_ = self.ingredient_search(term)
@@ -140,6 +148,7 @@ class Concierge:
                     "reviews": pick(f"Here's what customers{sk} are saying about {n}.", f"Customers{sk} have a lot to say about {n}. Here are a few reviews.",
                                     f"A few honest reviews of {n}{(' from people with ' + skin + ' skin') if skin else ''}:")}.get(
                 d["focus"], pick(f"Here's the full picture on {n}.", f"Here's everything on {n}.", f"Great choice to look into. Here's {n} at a glance."))
+        self.ctx["notfound"] = True
         return pick("Hmm, I couldn't find that one. Could you give me a product name or an ingredient? You can also tell me your skin type, or ask for something like “a nude lipstick under $30”.",
                     "I'm not sure I caught that. Try a product name, an ingredient, or tell me what you're after, like “a gentle cleanser for dry skin”.",
                     "That one's not coming up for me. Want to tell me your skin type, or name a product or ingredient you're curious about?")
@@ -243,7 +252,7 @@ class Concierge:
 
     ORD = {"first": 0, "1st": 0, "second": 1, "2nd": 1, "third": 2, "3rd": 2, "fourth": 3, "4th": 3, "last": -1}
 
-    def ask_rich(self, q, state=None):
+    def ask_rich(self, q, state=None, _probe=False):
         """Returns {"text":..., "products":[...]}. `state` is a per-conversation dict (kept in memory only) so
         follow-ups like "make it under $20" or "what about its reviews" can use earlier messages."""
         st = state if state is not None else {}
@@ -273,6 +282,9 @@ class Concierge:
             if t2: st["skin"] = t2; st.pop("awaiting"); q = ql = f"recommend products for {t2} skin"; t = t2
         if is_medical(q):
             return {"text": self.ask(q), "products": []}
+        if not _probe and not offer and len(ql.split()) <= 12:     # clear misspelling of a colour / finish / skin or hair word
+            fx = self._typos(q, closed=True)
+            if fx: return self._didyoumean(fx, st)
         # 1) refine the previous catalogue search ("make it under $20", "in matte", "cheaper", "show it in pink")
         mods = price or colour or finish or re.search(r"\b(cheaper|affordable|budget|another|different|instead|more options|show more)\b", ql)
         if not ttype and last and mods and not exact:
@@ -306,6 +318,9 @@ class Concierge:
             st["awaiting"] = "skin"
             return {"text": "Happy to help! What's your skin type: oily, dry, combination or normal? And is there anything you'd like to focus on, like blemishes, dark spots or dryness?", "products": []}
         text = self.ask(q)
+        if (self.ctx or {}).get("notfound") and not _probe:       # nothing matched: maybe a typo in a product or ingredient name
+            fx = self._typos(q, closed=False)
+            if fx and self._works(fx, st): return self._didyoumean(fx, st)
         ing = (self.ctx or {}).get("ingredient"); typ = (self.ctx or {}).get("ptype")
         if ing: st["offer"] = f"Which products contain {ing}?"
         out = {"text": text, "products": (self.ctx or {}).get("cards", [])}
@@ -340,7 +355,7 @@ class Concierge:
             what = " and ".join(x for x in [htype and f"{htype} hair", *[match.HAIR_TAGS[c][1] for c in cons[:2]]] if x)
             st["last_cat"] = "hair"
             return {"text": pick(f"Here are my top picks for {what or 'your hair'}:", f"For {what or 'your hair'}, these are the ones I'd try first:", f"I found some great options for {what or 'your hair'}:"), "products": prods}
-        if re.search(r"\b(perfume|fragrance|cologne|scent|eau de (parfum|toilette))\b", ql) and not re.search(r"free|without|avoid|allerg|sensitiv|no fragrance", ql) and verbs:
+        if re.search(r"\b(perfume|fragrance|cologne|scent|eau de (parfum|toilette))\b", ql) and not re.search(r"free|without|avoid|allerg|sensitiv|no fragrance", ql) and (verbs or len(ql.split()) <= 8):
             want = [k for k, rx in self.SCENT_W.items() if re.search(rx, ql)]
             prods = match.fragrance(self.con, {"scent": want, "unisex": bool(re.search(r"unisex|genderless", ql))}, 5, salt)
             if not prods: return None
@@ -361,6 +376,71 @@ class Concierge:
                 st["last_cat"] = "makeup"
                 return {"text": pick(f"These should match {tone} skin" + (f" with {under} undertones" if under else "") + ":", f"Shades that work for {tone} skin" + (f" ({under} undertone)" if under else "") + ":"), "products": prods}
         return None
+
+
+    COMMON = set("""what does do did is are was were the and for with without about under over below above from into onto your you my me our any all some more less
+        most best better worse good great nice please show tell give find need want looking look like love have has had can could would should will
+        recommend recommended suggest suggestion suggestions products product ingredient ingredients customers customer reviews review saying says
+        said price cheap cheaper cheapest expensive budget make made make it its this that these those there here which who whom whose when where why how
+        skin hair body face lips eyes makeup make-up beauty care routine concern concerns type types kind kinds shade shades colour color colours colors
+        something anything everything thing things other another different instead option options pick picks than then very really just also only
+        first second third last next one ones two three four five six also still even ever never always often again once twice
+        dry oil oily eye red tan spf new top big low high hot gel mix mat fix day night sun aha bha not yes yeah yep okay thanks""".split())
+
+    TYPO_MAP = {"drie": "dry", "dri": "dry", "dryy": "dry", "oyly": "oily", "olly": "oily", "oli": "oily", "sensative": "sensitive", "sensetive": "sensitive"}
+
+    def _vocab(self):
+        if getattr(self, "_v", None): return self._v
+        from .catalogue import COLOURS, FINISH
+        closed = set(COLOURS) | set(FINISH) | set(skinmod.SKIN_TYPES) | set(match.HAIR_TYPES) | set(match.TONES) | set(match.UNDERTONES) \
+            | {"sensitive", "combination", "floral", "fresh", "woody", "spicy", "matte", "glossy", "satin", "shimmer", "frizz", "dandruff"}
+        closed |= {w for c in list(COLOURS) for w in c.split()}
+        closed |= {"shampoo", "conditioner", "perfume", "fragrance", "cologne", "lipstick", "foundation", "concealer", "mascara", "eyeliner", "blush",
+                   "moisturizer", "moisturiser", "cleanser", "serum", "sunscreen", "lotion", "retinol", "niacinamide", "ceramide", "hyaluronic", "peptide",
+                   "vitamin", "salicylic", "glycolic", "bronzer", "primer", "toner", "recommend", "suggest"}
+        openv = set(closed)
+        for g, (al, *_r) in glossary.INGREDIENTS.items():
+            openv |= {w for t in [g] + list(al) for w in re.findall(r"[a-z]{4,}", t.lower())}
+        for t in self.cat.types: openv |= {w for w in re.findall(r"[a-z]{4,}", t)}
+        for _n, (_d, kws) in glossary.PRODUCT_TYPES.items(): openv |= {w for k in kws for w in re.findall(r"[a-z]{4,}", k)}
+        openv |= {"perfume", "fragrance", "cologne", "shampoo", "conditioner", "lotion", "moisturizer", "cleanser", "serum", "sunscreen", "foundation",
+                  "concealer", "lipstick", "mascara", "eyeliner", "blush", "bronzer", "primer", "toner", "retinol", "niacinamide", "ceramide", "peptide"}
+        for r in self.con.execute("SELECT DISTINCT brand FROM products"):
+            openv |= {w for w in re.findall(r"[a-z]{5,}", (r[0] or "").lower())}
+        for n in self.names.values():
+            openv |= {w for w in re.findall(r"[a-z]{5,}", (n or "").lower())}
+        english = set()
+        if os.path.exists("/usr/share/dict/words"):
+            try: english = {w.strip().lower() for w in open("/usr/share/dict/words", errors="ignore")}
+            except OSError: english = set()
+        self._v = (closed, openv, sorted(closed), sorted(openv | self.COMMON), english)
+        return self._v
+
+    def _typos(self, q, closed):
+        """Return q with likely misspelt domain words fixed (None if nothing to fix)."""
+        c, o, cl, ol, eng = self._vocab()
+        vocab, vlist, cut = (c, cl, 0.84) if closed else (o, ol, 0.75)
+        changed = [0]
+        def fix(m):
+            w = m.group().lower()
+            base = w[:-1] if w.endswith("s") else w
+            if w in o or base in o or w in self.COMMON or base in self.COMMON or w in eng or base in eng or changed[0] >= 2: return m.group()
+            hit = [self.TYPO_MAP[w]] if w in self.TYPO_MAP else difflib.get_close_matches(w, vlist, n=1, cutoff=cut)
+            if not hit: return m.group()
+            changed[0] += 1
+            return hit[0].capitalize() if m.group()[0].isupper() else hit[0]
+        out = re.sub(r"[A-Za-z][A-Za-z'\-]{2,}", fix, q)
+        return out if changed[0] and out.lower() != q.lower() else None
+
+    def _didyoumean(self, fix, st):
+        st["offer"] = fix
+        return {"text": pick(f"Did you mean “{fix}”?", f"Hmm, did you mean “{fix}”? Tap it below, or just say yes.", f"I think you meant “{fix}”. Shall I go with that?"),
+                "products": [], "didyoumean": fix}
+
+    def _works(self, q, st):
+        tmp = {k: (list(v) if isinstance(v, list) else v) for k, v in st.items()}
+        r = self.ask_rich(q, tmp, _probe=True)
+        return bool(r.get("products") or r.get("detail") or (r.get("text") and not (self.ctx or {}).get("notfound")))
 
     def _smalltalk(self, ql):
         s = ql.strip(" !.?")
