@@ -176,7 +176,7 @@ aside h3{color:var(--berry)}
 .aclose{background:linear-gradient(90deg,#1a0a14,#c0245f)!important}
 #drawer .dh{background:linear-gradient(90deg,#fff3ee,#f8f0ff)}
 </style>
-<header><a href="/" style="color:#fff;text-decoration:none" title="Home"><b>SEPHORA · BEAUTY CONCIERGE</b></a><span style="display:flex;gap:18px;align-items:center"><button id="cartbtn" aria-label="Open bag">🛍 Bag <span id="cartn">0</span></button><small id="menu" onclick="document.querySelector('aside').classList.toggle('open')" style="cursor:pointer">Skin analysis ▸</small></span></header>
+<header><a href="index.html" style="color:#fff;text-decoration:none" title="Home"><b>SEPHORA · BEAUTY CONCIERGE</b></a><span style="display:flex;gap:18px;align-items:center"><button id="cartbtn" aria-label="Open bag">🛍 Bag <span id="cartn">0</span></button><small id="menu" onclick="document.querySelector('aside').classList.toggle('open')" style="cursor:pointer">Skin analysis ▸</small></span></header>
 <div id="toast"></div>
 <div id="drawer"><div class="dh"><b>Your bag</b><button id="dclose" aria-label="Close">✕</button></div><div id="items"></div>
  <div class="df"><div class="sub"><span>Subtotal</span><b id="subtotal">$0.00</b></div>
@@ -243,7 +243,7 @@ aside h3{color:var(--berry)}
 <p class="note">Cosmetic suggestions only, not medical advice. For persistent or painful skin concerns, please see a dermatologist.</p>
 </aside></main>
 <script>
-const OFFLINE='The concierge is taking a short break and can\'t answer right now. Please check back a little later.';
+const OFFLINE=location.protocol==='file:'?'This page needs the server. Please open http://localhost:8000 (or the hosted site) instead of opening the file directly.':'The concierge is taking a short break and can\'t answer right now. Please check back a little later.';
 const API=(/^(localhost|127\.0\.0\.1|\[::1\])$/.test(location.hostname)?'':(window.API_BASE||'')).replace(/\/$/,''),$=id=>document.getElementById(id),log=$('log'),CONC={acne_blemishes:'Acne / blemishes',redness_sensitivity:'Redness / sensitivity',dark_spots:'Dark spots',fine_lines:'Fine lines',dullness:'Dullness',dehydration:'Dehydration',oiliness_pores:'Oil / pores'};
 if(API){const _f=window.fetch.bind(window);window.fetch=(u,o={})=>_f(u,{...o,headers:{...(o.headers||{}),'ngrok-skip-browser-warning':'1'}})}
 const HC={frizz:'Frizz',dryness:'Dryness',damage:'Damage',color_care:'Colour care',volume:'Volume',thinning:'Thinning',dry_scalp:'Dry scalp',oily_scalp:'Oily scalp',shine:'Shine'};
