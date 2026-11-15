@@ -13,3 +13,16 @@ Stdlib-only prototype: SQLite (products, ingredients, reviews) + BM25 over revie
 2. `ollama pull qwen2.5vl:7b`  (about 6 GB; fine on 16 GB+ Macs). Use another vision model with `LOCAL_VISION_MODEL=<name>`.
 3. `python3 server.py` — the consent box will say "100% on-device".
 Cloud analysis (OpenAI/Anthropic) is OFF unless you set `ALLOW_CLOUD_VISION=1` plus a key.
+
+## Hosting the page on Vercel (backend runs on your machine when needed)
+
+Vercel serves only the static page in `web/` (see `vercel.json`). The Python backend (`server.py`) runs where you start it.
+
+1. Start the backend and make it reachable over https, e.g. with a tunnel:
+   `cloudflared tunnel --url http://localhost:8000` (or ngrok), which prints an https URL.
+2. Allow your Vercel origin and start the server:
+   `ALLOWED_ORIGINS=https://your-app.vercel.app python3 server.py`
+3. Put the backend URL in `web/config.js` (`window.API_BASE = "https://....";`), commit and push; Vercel redeploys.
+4. When the backend is not running, visitors see a friendly "taking a short break" message.
+
+Notes: the full Kaggle data (`data/kaggle/`) is not in git; without it the server uses the small sample data. Photo checks need Ollama on the backend machine, or `ALLOW_CLOUD_VISION=1` with a key.

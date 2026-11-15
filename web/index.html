@@ -1,5 +1,6 @@
 <!doctype html><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Sephora Beauty Concierge</title>
+<script src="config.js"></script>
 <style>
 :root{--ink:#111;--line:#e3e3e3;--bg:#f6f5f3;--acc:#c8102e}
 *{box-sizing:border-box}body{margin:0;font:15px/1.55 -apple-system,Helvetica,sans-serif;background:var(--bg);color:var(--ink);height:100vh;display:flex;flex-direction:column}
@@ -151,7 +152,8 @@ select{width:100%;padding:8px;border-radius:8px;border:1px solid #bbb;margin:4px
 <p class="note">Cosmetic suggestions only, not medical advice. For persistent or painful skin concerns, please see a dermatologist.</p>
 </aside></main>
 <script>
-const $=id=>document.getElementById(id),log=$('log'),CONC={acne_blemishes:'Acne / blemishes',redness_sensitivity:'Redness / sensitivity',dark_spots:'Dark spots',fine_lines:'Fine lines',dullness:'Dullness',dehydration:'Dehydration',oiliness_pores:'Oil / pores'};
+const OFFLINE='The concierge is taking a short break and can\'t answer right now. Please check back a little later.';
+const API=(window.API_BASE||'').replace(/\/$/,''),$=id=>document.getElementById(id),log=$('log'),CONC={acne_blemishes:'Acne / blemishes',redness_sensitivity:'Redness / sensitivity',dark_spots:'Dark spots',fine_lines:'Fine lines',dullness:'Dullness',dehydration:'Dehydration',oiliness_pores:'Oil / pores'};
 $('pc').innerHTML=Object.entries(CONC).map(([k,v])=>`<label class="chk"><input type="checkbox" value="${k}">${v}</label>`).join('');
 $('cc').innerHTML=Object.entries(CONC).map(([k,v])=>`<label class="chk"><input type="checkbox" value="${k}">${v}</label>`).join('');
 function add(t,c){const d=document.createElement('div');d.className='m '+c;d.textContent=t;log.append(d);log.scrollTop=1e9;return d}
@@ -222,7 +224,7 @@ function cards(prods){const w=document.createElement('div');w.className='cards';
   w.append(c)}
  log.append(w);log.scrollTop=1e9}
 async function ask(t){add(t,'u');const w=typing();
- try{const r=await fetch('/ask',{method:'POST',body:t,headers:{'X-Session':SID}});const j=await r.json();w.textContent=j.text;if(j.detail)detailCard(j.detail);if(j.products&&j.products.length)cards(j.products);chips(j.suggestions||[])}catch(e){w.textContent='Sorry, something went wrong on my side. Could you try that again?'}}
+ try{const r=await fetch(API+'/ask',{method:'POST',body:t,headers:{'X-Session':SID}});const j=await r.json();w.textContent=j.text;if(j.detail)detailCard(j.detail);if(j.products&&j.products.length)cards(j.products);chips(j.suggestions||[])}catch(e){w.textContent=OFFLINE}}
 $('f').onsubmit=e=>{e.preventDefault();const t=$('q').value.trim();if(t){$('q').value='';ask(t)}};
 function chips(l){$('chips').innerHTML='';if(l.length)$('chips').insertAdjacentHTML('afterbegin','<span style="font-size:12px;color:#777;align-self:center">Suggested:</span>');l.forEach(t=>{const b=document.createElement('button');b.textContent=t;b.onclick=()=>ask(t);$('chips').append(b)})}
 add("Hi, I'm your Sephora Beauty Concierge ✨ Looking for a particular product or shade, curious what an ingredient does, or not sure where to start? Just ask. You can also tell me about your skin, or try the skin check on the right, and I'll find your match.",'b');
@@ -246,7 +248,7 @@ function showResult(r,source){const p=r.profile,a=r.analysis,fc=r.focus.map(c=>C
  if(a)add('A photo can\'t replace an in-person check, so if anything is bothering you, a dermatologist is the best person to ask.'+(a.unusual_spot?' One mark in particular may be worth having looked at.':''),'b');
  if(!r.products.length)add('I couldn\'t find a strong match for that yet. Could you tell me a little more about your skin?','b')}
 $('qgo').onclick=async()=>{const concerns=[...document.querySelectorAll('#cc input:checked')].map(i=>i.value);
- const w=typing();const r=await fetch('/recommend',{method:'POST',body:JSON.stringify({skin_type:$('st').value,concerns})});
+ const w=typing();const r=await fetch(API+'/recommend',{method:'POST',body:JSON.stringify({skin_type:$('st').value,concerns})});
  w.remove();const j=await r.json();showResult(j,'your quiz answers');chips(j.suggestions||[])};
 // ---- camera (stream is stopped as soon as a photo is taken or cancelled)
 let stream=null,src='file';
@@ -275,13 +277,13 @@ $('retake').onclick=()=>{const m=src;clearPhoto();m==='cam'?$('cam').click():$('
 $('del').onclick=()=>clearPhoto('Done, your photo has been deleted. Nothing was kept.');
 $('go').onclick=async()=>{const b=blob;$('go').disabled=true;const w=typing();
  const b64=await new Promise(r=>{const fr=new FileReader();fr.onload=()=>r(fr.result.split(',')[1]);fr.readAsDataURL(b)});
- try{const r=await fetch('/analyze',{method:'POST',body:JSON.stringify({image:b64,media_type:'image/jpeg',consent:true,consult:{skin_type:$('pst').value,concerns:[...document.querySelectorAll('#pc input:checked')].map(i=>i.value),avoid:[...document.querySelectorAll('input[name=av]:checked')].map(i=>i.value)}})});
+ try{const r=await fetch(API+'/analyze',{method:'POST',body:JSON.stringify({image:b64,media_type:'image/jpeg',consent:true,consult:{skin_type:$('pst').value,concerns:[...document.querySelectorAll('#pc input:checked')].map(i=>i.value),avoid:[...document.querySelectorAll('input[name=av]:checked')].map(i=>i.value)}})});
   const j=await r.json();w.remove();
   clearPhoto();                               // delete immediately after analysis, success or not
   if(!r.ok){add(j.error||'Sorry, I couldn\'t check that photo. Please try again.','b');return}
   add('Thanks! I\'ve deleted your photo. Here\'s what I found.','b');showResult(j,'your photo');chips(j.suggestions||[])
  }catch(e){w.remove();clearPhoto();add('Sorry, I couldn\'t check that photo just now. It has been deleted. Please try again, or use the quick quiz.','b')}};
-fetch('/config').then(r=>r.json()).then(c=>{if(c.local){$('consenttxt').textContent='I agree to have my photo analysed once. It\'s deleted right after and never saved.'}else if(c.provider){$('consenttxt').textContent='I agree to have my photo analysed once by a secure third-party service. It\'s deleted right after and never saved by us.';$('privtxt').innerHTML='Your photo is sent securely to a third-party analysis service for this one check, then <b>deleted right after</b>. We never save it.'}if(!c.image_analysis){$('nokey').style.display='block';$('go').title='unavailable'}});
+fetch(API+'/config').then(r=>r.json()).catch(()=>{add(OFFLINE,'b');$('q').disabled=true;$('q').placeholder='Currently offline';return {}}).then(c=>{if(c.local){$('consenttxt').textContent='I agree to have my photo analysed once. It\'s deleted right after and never saved.'}else if(c.provider){$('consenttxt').textContent='I agree to have my photo analysed once by a secure third-party service. It\'s deleted right after and never saved by us.';$('privtxt').innerHTML='Your photo is sent securely to a third-party analysis service for this one check, then <b>deleted right after</b>. We never save it.'}if(c.image_analysis===false){$('nokey').style.display='block';$('go').title='unavailable'}});
 
 // ---- checkout (details stay in this tab's memory only; nothing is sent anywhere)
 const co={step:1,info:{},ship:'std',pay:'cod',done:null};

@@ -13,7 +13,20 @@ MAX_BODY = 8 * 1024 * 1024
 
 SESSIONS = {}   # conversation memory: in RAM only, never written to disk, lost on restart (capped)
 
+ALLOWED = [o.strip().rstrip("/") for o in os.environ.get("ALLOWED_ORIGINS", "").split(",") if o.strip()]   # e.g. https://my-app.vercel.app
+
 class H(BaseHTTPRequestHandler):
+    def _cors(self):
+        o = (self.headers.get("Origin") or "").rstrip("/")
+        if o and o in ALLOWED:
+            self.send_header("Access-Control-Allow-Origin", o); self.send_header("Vary", "Origin")
+            self.send_header("Access-Control-Allow-Headers", "Content-Type, X-Session")
+            self.send_header("Access-Control-Allow-Methods", "GET, POST, OPTIONS")
+            if self.headers.get("Access-Control-Request-Private-Network"): self.send_header("Access-Control-Allow-Private-Network", "true")
+
+    def do_OPTIONS(self):
+        self.send_response(204); self._cors(); self.send_header("Content-Length", "0"); self.end_headers()
+
     def _state(self):
         sid = (self.headers.get("X-Session") or "anon")[:64]
         if sid not in SESSIONS:
@@ -24,12 +37,14 @@ class H(BaseHTTPRequestHandler):
     def _send(self, obj, ctype="application/json", code=200):
         b = (obj if isinstance(obj, str) else json.dumps(obj)).encode()
         self.send_response(code); self.send_header("Content-Type", ctype + "; charset=utf-8")
-        self.send_header("Cache-Control", "no-store"); self.send_header("Content-Length", str(len(b)))
+        self.send_header("Cache-Control", "no-store"); self._cors(); self.send_header("Content-Length", str(len(b)))
         self.end_headers(); self.wfile.write(b)
 
     def do_GET(self):
         if self.path == "/config":
             pv = skin.provider(); return self._send({"image_analysis": bool(pv), "provider": pv, "local": pv == skin.LOCAL_NAME})
+        if self.path.split("?")[0] == "/config.js":
+            return self._send(open(os.path.join(root, "web/config.js"), encoding="utf-8").read(), "application/javascript")
         self._send(open(os.path.join(root, "web/index.html"), encoding="utf-8").read(), "text/html")
 
     def do_POST(self):
