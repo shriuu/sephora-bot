@@ -156,8 +156,32 @@ def derive(a):
     return a
 
 
+def clean(a):
+    """Coerce whatever the model returned into the expected shape (small models often bend the schema)."""
+    if not isinstance(a, dict): return {"usable": False, "findings": {}, "skin_type": "unclear", "temporary": [], "observations": [], "confidence": "low"}
+    f = a.get("findings") if isinstance(a.get("findings"), dict) else {}
+    fx = {}
+    for k in ("texture_pores", "blemishes", "pigmentation", "redness", "fine_lines", "dryness", "oiliness"):
+        v = f.get(k, "none")
+        v = "mild" if v is True else str(v).strip().lower()
+        fx[k] = v if v in LEVEL else "none"
+    st = next((x for x in SKIN_TYPES if x in str(a.get("skin_type", "")).lower()), "unclear")
+    tmp = a.get("temporary"); tmp = [tmp] if isinstance(tmp, str) else (tmp if isinstance(tmp, list) else [])
+    obs = a.get("observations"); obs = [obs] if isinstance(obs, str) else (obs if isinstance(obs, list) else [])
+    conf = str(a.get("confidence", "low")).lower()
+    return {"usable": a.get("usable", True) is not False, "findings": fx, "skin_type": st,
+            "temporary": [t for t in map(str, tmp) if t in ("dehydration", "irritation")],
+            "observations": [str(o)[:160] for o in obs][:4], "unusual_spot": a.get("unusual_spot") is True,
+            "confidence": conf if conf in ("low", "medium", "high") else "low",
+            "concerns": [c for c in (a.get("concerns") or []) if c in CONCERNS] if isinstance(a.get("concerns"), list) else []}
+
+
 def analyze_image(b64, media_type, api_key=None, model="claude-sonnet-5-5"):
-    return derive(_analyze_raw(b64, media_type, api_key, model))
+    last = None
+    for _ in range(2):   # one retry: small local models occasionally return unusable JSON
+        try: return derive(clean(_analyze_raw(b64, media_type, api_key, model)))
+        except (ValueError, KeyError, TypeError, AttributeError) as e: last = e
+    raise ValueError(f"unreadable analysis: {type(last).__name__}")
 
 
 def _analyze_raw(b64, media_type, api_key=None, model="claude-sonnet-5-5"):

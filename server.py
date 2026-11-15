@@ -20,7 +20,7 @@ class H(BaseHTTPRequestHandler):
         o = (self.headers.get("Origin") or "").rstrip("/")
         if o and o in ALLOWED:
             self.send_header("Access-Control-Allow-Origin", o); self.send_header("Vary", "Origin")
-            self.send_header("Access-Control-Allow-Headers", "Content-Type, X-Session")
+            self.send_header("Access-Control-Allow-Headers", "Content-Type, X-Session, ngrok-skip-browser-warning")
             self.send_header("Access-Control-Allow-Methods", "GET, POST, OPTIONS")
             if self.headers.get("Access-Control-Request-Private-Network"): self.send_header("Access-Control-Allow-Private-Network", "true")
 
