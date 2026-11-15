@@ -7,8 +7,8 @@
 header{background:#000;color:#fff;padding:14px 22px;display:flex;justify-content:space-between;align-items:center}
 header b{letter-spacing:.25em}header small{opacity:.7}
 main{flex:1;display:grid;grid-template-columns:1fr 340px;min-height:0}
-@media(max-width:820px){main{grid-template-columns:1fr}aside{display:none}aside.open{display:block;position:fixed;inset:52px 0 0 0;z-index:5}}
-#chat{display:flex;flex-direction:column;min-height:0}
+@media(max-width:820px){main{grid-template-columns:minmax(0,1fr)}aside{display:none}aside.open{display:block;position:fixed;inset:0;z-index:30}}
+#chat{display:flex;flex-direction:column;min-height:0;min-width:0}
 #log{flex:1;overflow:auto;padding:20px 24px}
 .m{margin:10px 0;padding:11px 15px;border-radius:14px;white-space:pre-wrap;max-width:88%;animation:in .2s}
 @keyframes in{from{opacity:0;transform:translateY(6px)}}
@@ -108,6 +108,23 @@ select{width:100%;padding:8px;border-radius:8px;border:1px solid #bbb;margin:4px
 .pbig{width:100%;background:var(--acc);color:#fff;border:0;border-radius:24px;padding:13px;font-size:15px;cursor:pointer;margin-top:8px}.pbig:disabled{opacity:.6}
 .pback{background:none;border:0;color:#555;text-decoration:underline;cursor:pointer;margin-top:8px}
 .thanks{text-align:center;padding:30px 22px 34px}.thanks .tick{width:56px;height:56px;border-radius:50%;background:#1d8a4f;color:#fff;font-size:30px;line-height:56px;margin:0 auto 12px}
+
+.aclose{display:none}
+@media(max-width:820px){
+ html,body{height:100dvh;overflow-x:hidden}
+ header{padding:10px 14px;gap:8px}header b{letter-spacing:.12em;font-size:12.5px;line-height:1.3}
+ #log{padding:14px 12px}.m{max-width:94%}
+ .chips{flex-wrap:nowrap;overflow-x:auto;padding:0 12px 8px;-webkit-overflow-scrolling:touch}.chips button,.chips span{white-space:nowrap;flex:none}
+ form{padding:8px 12px calc(12px + env(safe-area-inset-bottom))}
+ input,select,textarea{font-size:16px!important}
+ .cards{grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;max-width:100%}
+ .pbtn button{font-size:11.5px;padding:7px 2px}
+ .dt{max-width:100%}.dt-top{padding:12px;gap:12px}.dt-img{width:92px;height:116px}.dt-main{min-width:0;flex-basis:140px}.dt-sec{padding:12px}.bars{min-width:0;flex-basis:100%}
+ aside.open{overflow:auto;padding:0 16px 24px}
+ .aclose{display:block;position:sticky;top:0;z-index:2;width:calc(100% + 32px);margin:0 -16px 12px;background:#000;color:#fff;border:0;padding:14px 16px;font-size:14px;text-align:left;cursor:pointer}
+ #vid,#prev{max-height:55vh;object-fit:cover}
+ .cobox{max-height:100%}.cogrid{padding:6px 14px 20px}.steps{padding:10px 14px;flex-wrap:wrap}
+}
 </style>
 <header><b>SEPHORA · BEAUTY CONCIERGE</b><span style="display:flex;gap:18px;align-items:center"><button id="cartbtn" aria-label="Open bag">🛍 Bag <span id="cartn">0</span></button><small id="menu" onclick="document.querySelector('aside').classList.toggle('open')" style="cursor:pointer">Skin analysis ▸</small></span></header>
 <div id="toast"></div>
@@ -123,6 +140,7 @@ select{width:100%;padding:8px;border-radius:8px;border:1px solid #bbb;margin:4px
 <div class="chips" id="chips"></div>
 <form id="f"><input type="text" id="q" placeholder="Ask about products, ingredients, reviews…" autocomplete="off"><button class="send">Send</button></form></section>
 <aside>
+<button class="aclose" id="aclose">‹ Back to chat</button>
 <h3>Find your skin match</h3><p>Get product picks from real customer reviews and ingredients.</p>
 <div class="tabs"><button id="t1" class="on">Photo</button><button id="t2">Quick quiz</button></div>
 <div id="photo">
@@ -153,7 +171,7 @@ select{width:100%;padding:8px;border-radius:8px;border:1px solid #bbb;margin:4px
 </aside></main>
 <script>
 const OFFLINE='The concierge is taking a short break and can\'t answer right now. Please check back a little later.';
-const API=(window.API_BASE||'').replace(/\/$/,''),$=id=>document.getElementById(id),log=$('log'),CONC={acne_blemishes:'Acne / blemishes',redness_sensitivity:'Redness / sensitivity',dark_spots:'Dark spots',fine_lines:'Fine lines',dullness:'Dullness',dehydration:'Dehydration',oiliness_pores:'Oil / pores'};
+const API=(/^(localhost|127\.0\.0\.1|\[::1\])$/.test(location.hostname)?'':(window.API_BASE||'')).replace(/\/$/,''),$=id=>document.getElementById(id),log=$('log'),CONC={acne_blemishes:'Acne / blemishes',redness_sensitivity:'Redness / sensitivity',dark_spots:'Dark spots',fine_lines:'Fine lines',dullness:'Dullness',dehydration:'Dehydration',oiliness_pores:'Oil / pores'};
 if(API){const _f=window.fetch.bind(window);window.fetch=(u,o={})=>_f(u,{...o,headers:{...(o.headers||{}),'ngrok-skip-browser-warning':'1'}})}
 $('pc').innerHTML=Object.entries(CONC).map(([k,v])=>`<label class="chk"><input type="checkbox" value="${k}">${v}</label>`).join('');
 $('cc').innerHTML=Object.entries(CONC).map(([k,v])=>`<label class="chk"><input type="checkbox" value="${k}">${v}</label>`).join('');
@@ -231,10 +249,11 @@ function chips(l){$('chips').innerHTML='';if(l.length)$('chips').insertAdjacentH
 add("Hi, I'm your Sephora Beauty Concierge ✨ Looking for a particular product or shade, curious what an ingredient does, or not sure where to start? Just ask. You can also tell me about your skin, or try the skin check on the right, and I'll find your match.",'b');
 chips(['Which products contain niacinamide?','Recommend products for oily skin','I want a red wine lipstick','Best for sensitive skin','What are customers saying about Gentle Hydra-Gel Face Cleanser?']);
 // ---- tabs
+$('aclose').onclick=()=>document.querySelector('aside').classList.remove('open');
 $('t1').onclick=()=>{$('photo').style.display='';$('quiz').style.display='none';$('t1').className='on';$('t2').className=''};
 $('t2').onclick=()=>{$('photo').style.display='none';$('quiz').style.display='';$('t2').className='on';$('t1').className=''};
 // ---- results
-function showResult(r,source){const p=r.profile,a=r.analysis,fc=r.focus.map(c=>CONC[c].toLowerCase());
+function showResult(r,source){document.querySelector('aside').classList.remove('open');const p=r.profile,a=r.analysis,fc=r.focus.map(c=>CONC[c].toLowerCase());
  let s=source==='your photo'?(p.skin_type?`From your photo, your skin looks ${p.skin_type}`:`I can't tell your skin type from a photo alone`):(p.skin_type?`Thanks for the details! Your skin sounds ${p.skin_type}`:`Thanks for the details!`);
  s+=fc.length?(p.skin_type?`, and I'd focus on ${fc.join(', ')}.`:`, but I'd focus on ${fc.join(', ')}.`):'.';
  if(a){const F={texture_pores:'texture and pores',blemishes:'blemishes',pigmentation:'dark spots or uneven tone',redness:'redness',fine_lines:'fine lines',dryness:'dryness',oiliness:'oiliness'},f=a.findings||{},L={mild:'Mild',moderate:'Moderate',notable:'Noticeable'};
