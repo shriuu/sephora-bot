@@ -1,446 +1,118 @@
 <!doctype html><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Sephora Beauty Concierge</title>
+<title>Sephora Beauty Concierge · Your personal beauty advisor</title>
+<meta name="description" content="Find your perfect match across skincare, makeup, hair, fragrance and body care. Ask anything, or get a personalised skin check.">
 <script src="config.js"></script>
 <style>
-:root{--ink:#111;--line:#e3e3e3;--bg:#f6f5f3;--acc:#c8102e}
-*{box-sizing:border-box}body{margin:0;font:15px/1.55 -apple-system,Helvetica,sans-serif;background:var(--bg);color:var(--ink);height:100vh;display:flex;flex-direction:column}
-header{background:#000;color:#fff;padding:14px 22px;display:flex;justify-content:space-between;align-items:center}
-header b{letter-spacing:.25em}header small{opacity:.7}
-main{flex:1;display:grid;grid-template-columns:1fr 340px;min-height:0}
-@media(max-width:820px){main{grid-template-columns:minmax(0,1fr)}aside{display:none}aside.open{display:block;position:fixed;inset:0;z-index:30}}
-#chat{display:flex;flex-direction:column;min-height:0;min-width:0}
-#log{flex:1;overflow:auto;padding:20px 24px}
-.m{margin:10px 0;padding:11px 15px;border-radius:14px;white-space:pre-wrap;max-width:88%;animation:in .2s}
-@keyframes in{from{opacity:0;transform:translateY(6px)}}
-.u{background:#000;color:#fff;margin-left:auto;border-bottom-right-radius:4px}
-.b{background:#fff;border:1px solid var(--line);border-bottom-left-radius:4px}
-.dots span{display:inline-block;width:7px;height:7px;margin:0 2px;background:#999;border-radius:50%;animation:b 1s infinite}
-.dots span:nth-child(2){animation-delay:.15s}.dots span:nth-child(3){animation-delay:.3s}
-@keyframes b{50%{transform:translateY(-5px)}}
-.chips{display:flex;flex-wrap:wrap;gap:6px;padding:0 24px 8px}
-.chips button{background:#fff;border:1px solid #bbb;border-radius:18px;padding:6px 13px;cursor:pointer;font-size:13px}
-.chips button:hover{border-color:#000}
-form{display:flex;gap:8px;padding:12px 24px 18px}
-input[type=text]{flex:1;padding:13px 16px;border:1px solid #bbb;border-radius:24px;font-size:15px;outline:0}
-input[type=text]:focus{border-color:#000}
-.send{background:#000;color:#fff;border:0;border-radius:24px;padding:0 22px;cursor:pointer;font-size:15px}
-.cards{display:grid;grid-template-columns:repeat(auto-fill,minmax(215px,1fr));gap:14px;margin:12px 0;max-width:760px}
-.pc{background:#fff;border:1px solid var(--line);border-radius:14px;overflow:hidden;display:flex;flex-direction:column;transition:box-shadow .15s,transform .15s}
-.pc:hover{box-shadow:0 6px 20px rgba(0,0,0,.09);transform:translateY(-2px)}
-.pimg{height:150px;display:flex;align-items:center;justify-content:center}
-.pimg svg{height:118px;filter:drop-shadow(0 6px 6px rgba(0,0,0,.18))}
-.pbody{padding:11px 13px 13px;display:flex;flex-direction:column;gap:3px;flex:1}
-.pbrand{font-size:11px;letter-spacing:.12em;text-transform:uppercase;font-weight:700}
-.pname{font-size:13.5px;line-height:1.3;cursor:pointer;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
-.pname:hover{text-decoration:underline}
-.stars{display:inline-block;position:relative;font-size:13px;letter-spacing:1px;color:#ddd;line-height:1}
-.stars i{position:absolute;left:0;top:0;overflow:hidden;color:#111;font-style:normal;white-space:nowrap}
-.rv{font-size:12px;color:#666;margin-left:4px}
-.price{font-size:16px;font-weight:700;margin-top:2px}
-.shade{display:flex;align-items:center;gap:7px;font-size:12px;color:#444;margin-top:2px}
-.dot{width:16px;height:16px;border-radius:50%;border:1px solid rgba(0,0,0,.2);flex:none}
-.why{font-size:11.5px;color:#555;margin:4px 0 0;line-height:1.4}
-#cartbtn{background:transparent;color:#fff;border:1px solid #fff;border-radius:18px;padding:5px 13px;cursor:pointer;font-size:13px}
-#cartbtn.bump{animation:bump .4s}@keyframes bump{40%{transform:scale(1.18)}}
-#cartn{background:#c8102e;border-radius:9px;padding:0 6px;margin-left:3px;font-size:12px}
-#toast{position:fixed;left:50%;bottom:90px;transform:translate(-50%,20px);background:#000;color:#fff;padding:9px 16px;border-radius:20px;font-size:13px;opacity:0;pointer-events:none;transition:.25s;z-index:30}
-#toast.on{opacity:1;transform:translate(-50%,0)}
-#drawer{position:fixed;top:0;right:0;bottom:0;width:360px;max-width:100%;background:#fff;box-shadow:-8px 0 30px rgba(0,0,0,.18);transform:translateX(105%);transition:transform .25s;z-index:20;display:flex;flex-direction:column}
-#drawer.open{transform:none}.dh{display:flex;justify-content:space-between;align-items:center;padding:16px 18px;border-bottom:1px solid var(--line)}
-.dh button{border:0;background:none;font-size:18px;cursor:pointer}#items{flex:1;overflow:auto;padding:8px 18px}
-.it{display:flex;gap:10px;padding:12px 0;border-bottom:1px solid #eee}.it .sw{width:44px;height:44px;border-radius:8px;flex:none;border:1px solid #ddd}
-.it .info{flex:1;font-size:13px}.it .info b{display:block;font-size:11px;letter-spacing:.1em;text-transform:uppercase}
-.qty{display:flex;align-items:center;gap:8px;margin-top:5px}.qty button{width:24px;height:24px;border:1px solid #bbb;background:#fff;border-radius:50%;cursor:pointer}
-.it .rm{border:0;background:none;color:#888;cursor:pointer;font-size:12px;text-decoration:underline}
-.df{padding:14px 18px;border-top:1px solid var(--line)}.sub{display:flex;justify-content:space-between;font-size:16px;margin-bottom:10px}
-#checkout{width:100%;padding:12px;border:0;border-radius:8px;background:#000;color:#fff;font-size:14px}#checkout:disabled{opacity:.35;cursor:not-allowed}
-.lnk{border:0;background:none;text-decoration:underline;font-size:12px;color:#666;cursor:pointer;margin-top:4px}
-.pbtn .add{flex:1 0 100%;background:#c8102e;border-color:#c8102e;font-weight:600}.pbtn{flex-wrap:wrap}
-.pbtn{margin-top:auto;padding-top:8px;display:flex;gap:6px}
-.pbtn button{flex:1;border:1px solid #000;background:#000;color:#fff;border-radius:6px;padding:7px 4px;font-size:12px;cursor:pointer}
-.pbtn button.sec{background:#fff;color:#000}
-.card{background:#fff;border:1px solid var(--line);border-radius:12px;padding:12px 14px}
-.dt{background:#fff;border:1px solid var(--line);border-radius:14px;max-width:660px;margin:10px 0;overflow:hidden;animation:in .25s}
-.dt-top{display:flex;gap:18px;padding:16px 18px;flex-wrap:wrap}.dt-img{width:120px;height:150px;flex:none;border-radius:10px;overflow:hidden}.dt-img .pimg{width:100%;height:100%}
-.dt-main{flex:1;min-width:210px}.dt-main .br{font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:#666}.dt-main h3{margin:2px 0 6px;font-size:17px;line-height:1.3}
-.dt-main .pr{font-size:20px;font-weight:700;margin:8px 0}.dt-main .rec{font-size:12.5px;color:#1d6b43;margin:4px 0 10px}
-.dt-main .add{background:#c8102e;color:#fff;border:0;border-radius:20px;padding:9px 20px;cursor:pointer;font-weight:600}
-.bars{min-width:190px;flex:1;font-size:12px;align-self:center}.bars div{display:flex;align-items:center;gap:7px;margin:3px 0}.bars i{flex:1;height:7px;background:#eee;border-radius:4px;overflow:hidden}.bars i b{display:block;height:100%;background:#e0a100}
-.dt-sec{border-top:1px solid var(--line);padding:14px 18px}.dt-sec h4{margin:0 0 9px;font-size:13px;letter-spacing:.08em;text-transform:uppercase}
-.ichips{display:flex;flex-wrap:wrap;gap:7px}.ichip{background:#f4f2ee;border-radius:16px;padding:5px 11px;font-size:12.5px}.ichip.k{background:#fdecef;cursor:pointer}.ichip small{color:#777;display:block;font-size:11px}
-.dt details{margin-top:10px;font-size:12.5px;color:#444}.dt summary{cursor:pointer;color:#000;font-weight:600}
-.rvc{border:1px solid #eee;border-radius:12px;padding:12px 14px;margin:0 0 10px}.rvh{display:flex;justify-content:space-between;align-items:center;font-size:12px;color:#666;gap:8px;flex-wrap:wrap}
-.tag{background:#eef3fb;color:#2a4b8d;border-radius:10px;padding:2px 8px;font-size:11px}.tag.free{background:#fff3df;color:#8a5a00}
-.rvc p{margin:7px 0 0;font-size:13.5px;line-height:1.5;white-space:normal}.rvc a{color:#000;cursor:pointer;text-decoration:underline;font-size:12.5px}
-.card h4{margin:0 0 2px;font-size:14.5px}.card .br{font-size:12px;letter-spacing:.08em;text-transform:uppercase;color:#666}
-.card .meta{font-size:13px;margin:4px 0;color:#333}.card li{font-size:12.5px;color:#444;margin-left:-14px}
-.tag{display:inline-block;background:#f0eeea;border-radius:10px;padding:1px 8px;font-size:11.5px;margin-right:4px}
-aside{background:#fff;border-left:1px solid var(--line);padding:18px;overflow:auto}
-aside h3{margin:0 0 4px}aside p{font-size:12.5px;color:#555;margin:4px 0 10px}
-.tabs{display:flex;gap:6px;margin:10px 0}.tabs button{flex:1;padding:7px;border:1px solid #ccc;background:#fff;border-radius:8px;cursor:pointer}
-.tabs .on{background:#000;color:#fff;border-color:#000}
-#drop{border:2px dashed #bbb;border-radius:12px;padding:22px;text-align:center;cursor:pointer;color:#555;font-size:13px}
-#drop.over{border-color:#000;background:#faf9f7}
-#prev{width:100%;border-radius:10px;margin-top:8px;display:none}
-.row{display:flex;gap:6px;margin-top:8px}.row button{flex:1;padding:9px;border-radius:8px;border:1px solid #000;cursor:pointer;background:#000;color:#fff}
-.row button.sec{background:#fff;color:#000}.row button:disabled{opacity:.4;cursor:not-allowed}
-.priv{background:#f0f7f1;border:1px solid #bcd9c2;border-radius:10px;padding:9px 11px;font-size:12px;margin:8px 0}
-label.chk{display:flex;gap:8px;font-size:12.5px;align-items:flex-start;margin:8px 0}
-select{width:100%;padding:8px;border-radius:8px;border:1px solid #bbb;margin:4px 0 8px}
-.cc{display:grid;grid-template-columns:1fr 1fr;gap:2px 8px;font-size:12.5px}
-.note{font-size:11.5px;color:#777;margin-top:10px}
-.ok{color:#1a7f37;font-weight:600}
-
-#co{position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:40;display:none;align-items:center;justify-content:center;padding:14px}
-#co.open{display:flex}.cobox{background:#fff;border-radius:14px;width:880px;max-width:100%;max-height:100%;overflow:auto;display:flex;flex-direction:column}
-.coh{display:flex;justify-content:space-between;align-items:center;padding:16px 22px;border-bottom:1px solid var(--line);position:sticky;top:0;background:#fff}
-.coh button{border:0;background:none;font-size:20px;cursor:pointer}
-.steps{display:flex;gap:6px;padding:12px 22px;font-size:12px;letter-spacing:.06em;text-transform:uppercase;color:#999}
-.steps span.on{color:#000;font-weight:700}.steps span.done{color:var(--acc)}
-.cogrid{display:grid;grid-template-columns:1fr 300px;gap:26px;padding:6px 22px 24px}
-@media(max-width:760px){.cogrid{grid-template-columns:1fr}}
-.cogrid h4{margin:14px 0 8px;font-size:14px}.cogrid input,.cogrid select{width:100%;padding:10px 11px;border:1px solid #bbb;border-radius:8px;font:inherit;margin:0 0 9px}
-.cogrid input.bad{border-color:var(--acc);background:#fff6f7}.two{display:grid;grid-template-columns:1fr 1fr;gap:10px}
-.opt{display:flex;gap:10px;align-items:flex-start;border:1px solid #ccc;border-radius:10px;padding:11px 13px;margin:0 0 9px;cursor:pointer}
-.opt input{width:auto;margin:4px 0 0}.opt.sel{border-color:#000;background:#fafafa}.opt small{display:block;color:#666}.opt b{display:flex;justify-content:space-between;gap:10px}
-.sumbox{background:#faf9f7;border:1px solid var(--line);border-radius:12px;padding:14px;align-self:start;font-size:13px}
-.sumbox .l{display:flex;justify-content:space-between;gap:10px;margin:6px 0}.sumbox .tot{border-top:1px solid #ddd;padding-top:9px;margin-top:9px;font-size:15px}
-.pbig{width:100%;background:var(--acc);color:#fff;border:0;border-radius:24px;padding:13px;font-size:15px;cursor:pointer;margin-top:8px}.pbig:disabled{opacity:.6}
-.pback{background:none;border:0;color:#555;text-decoration:underline;cursor:pointer;margin-top:8px}
-.thanks{text-align:center;padding:30px 22px 34px}.thanks .tick{width:56px;height:56px;border-radius:50%;background:#1d8a4f;color:#fff;font-size:30px;line-height:56px;margin:0 auto 12px}
-
-.aclose{display:none}
-.catpick{display:flex;flex-wrap:wrap;gap:6px;margin:0 0 10px}.cp{border:1px solid #bbb;border-radius:18px;padding:6px 13px;font-size:13px;cursor:pointer;margin:0;display:inline-flex;align-items:center}.cp input{display:none}.cp.on{background:#000;color:#fff;border-color:#000}
-.sech{font-weight:700;margin:14px 0 2px;font-size:14px;letter-spacing:.02em}
-.or{display:flex;align-items:center;gap:10px;margin:16px 0 10px;color:#888;font-size:12px}.or:before,.or:after{content:'';flex:1;border-top:1px solid var(--line)}
-@media(max-width:820px){
- html,body{height:100dvh;overflow-x:hidden}
- header{padding:10px 14px;gap:8px}header b{letter-spacing:.12em;font-size:12.5px;line-height:1.3}
- #log{padding:14px 12px}.m{max-width:94%}
- .chips{flex-wrap:nowrap;overflow-x:auto;padding:0 12px 8px;-webkit-overflow-scrolling:touch}.chips button,.chips span{white-space:nowrap;flex:none}
- form{padding:8px 12px calc(12px + env(safe-area-inset-bottom))}
- input,select,textarea{font-size:16px!important}
- .cards{grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;max-width:100%}
- .pbtn button{font-size:11.5px;padding:7px 2px}
- .dt{max-width:100%}.dt-top{padding:12px;gap:12px}.dt-img{width:92px;height:116px}.dt-main{min-width:0;flex-basis:140px}.dt-sec{padding:12px}.bars{min-width:0;flex-basis:100%}
- aside.open{overflow:auto;padding:0 16px 24px}
- .aclose{display:block;position:sticky;top:0;z-index:2;width:calc(100% + 32px);margin:0 -16px 12px;background:#000;color:#fff;border:0;padding:14px 16px;font-size:14px;text-align:left;cursor:pointer}
- #vid,#prev{max-height:55vh;object-fit:cover}
- .cobox{max-height:100%}.cogrid{padding:6px 14px 20px}.steps{padding:10px 14px;flex-wrap:wrap}
-}
-
-/* ===== colourful theme (berry / rose / coral) — remove this block to go back to the plain look ===== */
-:root{--acc:#d6246e;--berry:#7a1646;--rose:#e8458b;--coral:#ff7a59;--grad:linear-gradient(135deg,#d6246e 0%,#ff6a4d 100%);--gold:#f2a900}
-body{background:linear-gradient(180deg,#fff3ee 0%,#f8f0ff 55%,#edf8f4 100%) fixed}
-header{background:linear-gradient(100deg,#1a0a14 0%,#5c1237 52%,#c0245f 100%);box-shadow:0 2px 14px rgba(122,22,70,.25)}
-header small{opacity:.9}
-#cartbtn{border-color:rgba(255,255,255,.75);background:rgba(255,255,255,.12)}#cartbtn:hover{background:rgba(255,255,255,.22)}
-#cartn{background:var(--grad)}
-.u{background:linear-gradient(135deg,#8e1f4e,#d6246e);box-shadow:0 3px 10px rgba(214,36,110,.25)}
-.b{border:0;border-left:3px solid var(--rose);box-shadow:0 2px 10px rgba(122,22,70,.07)}
-.dots span{background:var(--rose)}
-.chips button{border:0;color:#3b1530;box-shadow:0 1px 4px rgba(0,0,0,.08);transition:transform .12s,box-shadow .12s}
-.chips button:nth-of-type(4n+1){background:#ffe3d6}.chips button:nth-of-type(4n+2){background:#efe5ff}
-.chips button:nth-of-type(4n+3){background:#dcf4ea}.chips button:nth-of-type(4n+4){background:#ffe0ee}
-.chips button:hover{transform:translateY(-1px);box-shadow:0 4px 10px rgba(122,22,70,.18)}
-input[type=text]:focus{border-color:var(--rose);box-shadow:0 0 0 3px rgba(232,69,139,.18)}
-.send,#checkout,.pbig{background:var(--grad)!important;color:#fff;box-shadow:0 3px 10px rgba(214,36,110,.3)}
-.send:hover,#checkout:hover,.pbig:hover{filter:brightness(1.06)}
-.pc{border:0;border-top:3px solid transparent;border-image:var(--grad) 1;box-shadow:0 2px 10px rgba(122,22,70,.08)}
-.pc:hover{box-shadow:0 8px 24px rgba(214,36,110,.22)}
-.pbrand{color:var(--berry)}.price{color:var(--berry)}
-.stars i{color:var(--gold)}
-.pbtn .add,.dt-main .add{background:var(--grad)!important;border:0;box-shadow:0 2px 8px rgba(214,36,110,.28)}
-.pbtn button{border-color:var(--berry);background:var(--berry)}.pbtn button.sec{background:#fff;color:var(--berry)}
-.why{color:#6b3a52}
-.sech{display:inline-block;background:linear-gradient(90deg,#ffe0ee,#efe5ff);color:var(--berry);padding:5px 14px;border-radius:14px;border-left:4px solid var(--rose)}
-aside{background:linear-gradient(180deg,#fff 0%,#fff6fa 100%);border-left:1px solid #f3d7e4}
-aside h3{color:var(--berry)}
-.cp{background:#fff;border-color:#e8b9cf;color:#5c1237}.cp.on{background:var(--grad);border-color:transparent;color:#fff;box-shadow:0 2px 8px rgba(214,36,110,.3)}
-#qgo,#go{background:var(--grad)!important;border:0!important;color:#fff;box-shadow:0 3px 10px rgba(214,36,110,.3)}#go:disabled{opacity:.45;box-shadow:none}
-.tabs button.on{background:var(--berry);color:#fff}
-.or{color:#b47a96}.or:before,.or:after{border-color:#f0cfdf}
-.priv{background:linear-gradient(90deg,#e6f7ef,#f1fbf6);border-color:#bfe6d3}
-#drop{border-color:#e8a9c6;background:#fff9fc}#drop.over{background:#ffe9f3}
-.dt{border:0;box-shadow:0 4px 18px rgba(122,22,70,.1);border-top:3px solid transparent;border-image:var(--grad) 1}
-.dt-sec h4{color:var(--berry)}
-.ichip{background:#f6eefc}.ichip.k{background:#ffe0ee;color:#5c1237}
-.bars i b{background:var(--gold)}
-.rvc{background:#fffafc;border-color:#f6dce8}.rec{color:#1d7a50}
-.tag{background:#efe5ff;color:#4a2a8a}
-.steps span.on{color:var(--berry)}.steps span.done{color:var(--rose)}
-.opt.sel{border-color:var(--rose);background:#fff5fa}
-.cogrid input:focus,.cogrid select:focus{outline:0;border-color:var(--rose);box-shadow:0 0 0 3px rgba(232,69,139,.15)}
-.sumbox{background:linear-gradient(180deg,#fff8fb,#fff);border-color:#f3d7e4}
-#toast{background:linear-gradient(90deg,#5c1237,#c0245f)}
-.aclose{background:linear-gradient(90deg,#1a0a14,#c0245f)!important}
-#drawer .dh{background:linear-gradient(90deg,#fff3ee,#f8f0ff)}
+:root{--ink:#1d0f18;--berry:#7a1646;--rose:#e8458b;--coral:#ff7a59;--grad:linear-gradient(135deg,#d6246e 0%,#ff6a4d 100%);--line:#f1d9e5}
+*{box-sizing:border-box}html{scroll-behavior:smooth}
+body{margin:0;font:16px/1.6 -apple-system,Helvetica,Arial,sans-serif;color:var(--ink);background:linear-gradient(180deg,#fff3ee 0%,#f8f0ff 45%,#edf8f4 100%) fixed;overflow-x:hidden}
+a{color:inherit;text-decoration:none}
+nav{display:flex;justify-content:space-between;align-items:center;padding:16px 6vw;background:linear-gradient(100deg,#1a0a14 0%,#5c1237 52%,#c0245f 100%);color:#fff;position:sticky;top:0;z-index:5;box-shadow:0 2px 14px rgba(122,22,70,.25)}
+nav b{letter-spacing:.22em;font-size:14px}
+.btn{display:inline-flex;align-items:center;gap:8px;background:var(--grad);color:#fff;border:0;border-radius:28px;padding:13px 26px;font-size:16px;font-weight:600;cursor:pointer;box-shadow:0 6px 18px rgba(214,36,110,.35);transition:transform .15s,box-shadow .15s}
+.btn:hover{transform:translateY(-2px);box-shadow:0 10px 24px rgba(214,36,110,.42)}
+.btn.sec{background:#fff;color:var(--berry);box-shadow:0 2px 10px rgba(122,22,70,.12);border:1px solid #efc3d8}
+nav .btn{padding:8px 18px;font-size:14px;box-shadow:none;background:rgba(255,255,255,.16);border:1px solid rgba(255,255,255,.7)}
+.hero{display:grid;grid-template-columns:1.1fr .9fr;gap:40px;align-items:center;padding:64px 6vw 40px;max-width:1200px;margin:0 auto}
+.pill{display:inline-flex;align-items:center;gap:8px;background:#fff;border:1px solid var(--line);border-radius:20px;padding:5px 14px;font-size:13px;color:#5c1237}
+.dot{width:9px;height:9px;border-radius:50%;background:#aaa}.dot.on{background:#1fb26a;box-shadow:0 0 0 4px rgba(31,178,106,.2)}
+h1{font-size:clamp(34px,5vw,58px);line-height:1.08;margin:18px 0 14px;letter-spacing:-.02em}
+h1 span{background:var(--grad);-webkit-background-clip:text;background-clip:text;color:transparent}
+.lead{font-size:18px;color:#5b3a4b;max-width:540px;margin:0 0 26px}
+.cta{display:flex;flex-wrap:wrap;gap:12px;margin-bottom:22px}
+.trust{display:flex;flex-wrap:wrap;gap:22px;color:#6b4a5b;font-size:14px}.trust b{display:block;font-size:22px;color:var(--berry)}
+.demo{background:#fff;border-radius:24px;padding:18px;box-shadow:0 20px 50px rgba(122,22,70,.18);border-top:4px solid transparent;border-image:var(--grad) 1;transform:rotate(1.2deg)}
+.bub{padding:10px 14px;border-radius:16px;margin:8px 0;font-size:14.5px;max-width:86%}
+.bub.u{background:linear-gradient(135deg,#8e1f4e,#d6246e);color:#fff;margin-left:auto;border-bottom-right-radius:4px}
+.bub.b{background:#fff;border:1px solid var(--line);border-left:3px solid var(--rose);border-bottom-left-radius:4px}
+.mini{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin:8px 0}
+.mc{border:1px solid var(--line);border-radius:14px;overflow:hidden;font-size:12px}
+.mc i{display:block;height:78px}.mc div{padding:8px 10px}.mc b{display:block;font-size:10.5px;letter-spacing:.1em;color:var(--berry)}
+.mc u{text-decoration:none;font-weight:700;color:var(--berry)}
+section{max-width:1200px;margin:0 auto;padding:34px 6vw}
+h2{font-size:clamp(24px,3vw,34px);margin:0 0 6px;letter-spacing:-.01em}.sub{color:#6b4a5b;margin:0 0 22px}
+.tiles{display:grid;grid-template-columns:repeat(5,1fr);gap:14px}
+.tile{border-radius:20px;padding:22px 16px;min-height:150px;display:flex;flex-direction:column;justify-content:space-between;color:var(--ink);box-shadow:0 4px 14px rgba(122,22,70,.08);transition:transform .15s,box-shadow .15s}
+.tile:hover{transform:translateY(-4px);box-shadow:0 12px 26px rgba(122,22,70,.2)}
+.tile .e{font-size:34px}.tile b{font-size:17px}.tile small{color:#5b3a4b;display:block;line-height:1.35;margin-top:2px}
+.t1{background:#ffe3d6}.t2{background:#ffe0ee}.t3{background:#efe5ff}.t4{background:#dcf4ea}.t5{background:#fff1c9}
+.steps{display:grid;grid-template-columns:repeat(3,1fr);gap:16px}
+.step{background:#fff;border-radius:20px;padding:22px;box-shadow:0 4px 14px rgba(122,22,70,.07)}
+.step .n{width:36px;height:36px;border-radius:50%;background:var(--grad);color:#fff;display:grid;place-items:center;font-weight:700;margin-bottom:10px}
+.step p{margin:4px 0 0;color:#5b3a4b;font-size:15px}
+.chips{display:flex;flex-wrap:wrap;gap:10px}
+.chips a{border-radius:22px;padding:9px 18px;font-size:15px;color:#3b1530;box-shadow:0 1px 5px rgba(0,0,0,.08);transition:transform .12s}
+.chips a:hover{transform:translateY(-2px)}
+.chips a:nth-child(4n+1){background:#ffe3d6}.chips a:nth-child(4n+2){background:#efe5ff}.chips a:nth-child(4n+3){background:#dcf4ea}.chips a:nth-child(4n+4){background:#ffe0ee}
+.band{background:linear-gradient(100deg,#1a0a14 0%,#5c1237 52%,#c0245f 100%);color:#fff;border-radius:28px;padding:36px;display:flex;justify-content:space-between;align-items:center;gap:20px;flex-wrap:wrap;max-width:1200px;margin:10px auto 0}
+.band h2{margin:0 0 4px}.band p{margin:0;opacity:.85}.band .btn{background:#fff;color:var(--berry);box-shadow:none}
+footer{text-align:center;color:#7a5a6b;font-size:13px;padding:30px 6vw 40px}
+@media(max-width:900px){.hero{grid-template-columns:1fr;padding-top:36px}.demo{transform:none}.tiles{grid-template-columns:repeat(2,1fr)}.steps{grid-template-columns:1fr}.tile:last-child{grid-column:span 2}}
 </style>
-<header><b>SEPHORA · BEAUTY CONCIERGE</b><span style="display:flex;gap:18px;align-items:center"><button id="cartbtn" aria-label="Open bag">🛍 Bag <span id="cartn">0</span></button><small id="menu" onclick="document.querySelector('aside').classList.toggle('open')" style="cursor:pointer">Skin analysis ▸</small></span></header>
-<div id="toast"></div>
-<div id="drawer"><div class="dh"><b>Your bag</b><button id="dclose" aria-label="Close">✕</button></div><div id="items"></div>
- <div class="df"><div class="sub"><span>Subtotal</span><b id="subtotal">$0.00</b></div>
- <div id="ship" class="note" style="margin:6px 0"></div>
- <button id="checkout" disabled>Checkout</button>
- <p class="note">Free standard delivery on orders over $35. Taxes included.</p>
- <button id="clearbag" class="lnk">Empty bag</button></div></div>
-<div id="co"><div class="cobox"><div class="coh"><b>Secure checkout</b><button id="coclose" aria-label="Close">✕</button></div><div class="steps" id="costeps"></div><div id="cobody"></div></div></div>
-<main>
-<section id="chat"><div id="log"></div>
-<div class="chips" id="chips"></div>
-<form id="f"><input type="text" id="q" placeholder="Ask about products, ingredients, reviews…" autocomplete="off"><button class="send">Send</button></form></section>
-<aside>
-<button class="aclose" id="aclose">‹ Back to chat</button>
-<h3>Find your skin match</h3><p>Get product picks from real customer reviews and ingredients.</p>
-<div id="ask">
- <div class="note" style="margin:0 0 6px"><b>What are you shopping for?</b> Pick any that apply.</div>
- <div class="catpick" id="catpick">
-  <label class="cp on"><input type="checkbox" value="skin" checked>Skincare</label><label class="cp"><input type="checkbox" value="hair">Hair</label>
-  <label class="cp"><input type="checkbox" value="makeup">Makeup</label><label class="cp"><input type="checkbox" value="fragrance">Fragrance</label>
-  <label class="cp"><input type="checkbox" value="body">Body</label>
- </div>
- <div class="qb" data-cat="skin"><label>How does your skin usually feel?<select id="pst"><option value="">Not sure</option><option>oily</option><option>dry</option><option>combination</option><option>normal</option></select></label>
- <div class="note" style="margin:6px 0 2px">Main concerns</div><div class="cc" id="pc"></div>
-<div class="note" style="margin:6px 0 2px">Ingredients to avoid (allergies / sensitivities)</div>
-  <div class="cc"><label class="chk"><input type="checkbox" name="av" value="fragrance">Fragrance</label><label class="chk"><input type="checkbox" name="av" value="alcohol">Drying alcohol</label><label class="chk"><input type="checkbox" name="av" value="essential oils">Essential oils</label></div>
+<nav><b>SEPHORA · BEAUTY CONCIERGE</b><a class="btn" href="/chat">Start chatting</a></nav>
 
+<div class="hero">
+ <div>
+  <span class="pill"><span class="dot" id="dot"></span><span id="status">Checking…</span></span>
+  <h1>Hello, beautiful.<br>Let's find <span>your match.</span></h1>
+  <p class="lead">Your personal beauty concierge. Ask about any product or ingredient, find the right shade, or get a skin check from a photo. Picks for skincare, makeup, hair, fragrance and body care.</p>
+  <div class="cta"><a class="btn" href="/chat">💬 Chat with the Concierge</a><a class="btn sec" href="/chat?panel=1">✨ Find my skin match</a></div>
+  <div class="trust"><span><b>8,500+</b>products</span><span><b>1M+</b>customer reviews</span><span><b>300+</b>brands</span></div>
  </div>
- <div class="qb" data-cat="hair" style="display:none">
-  <label>Hair type<select id="htype"><option value="">Not sure</option><option>straight</option><option>wavy</option><option>curly</option><option>coily</option></select></label>
-  <div class="note" style="margin:6px 0 2px">Hair concerns</div><div class="cc" id="hc"></div>
-  <div class="note" style="margin:6px 0 2px">Avoid</div>
-  <div class="cc"><label class="chk"><input type="checkbox" name="hav" value="sulfates">Sulfates</label><label class="chk"><input type="checkbox" name="hav" value="silicones">Silicones</label><label class="chk"><input type="checkbox" name="hav" value="fragrance">Fragrance</label></div>
+ <div class="demo" aria-hidden="true">
+  <div class="bub u">I want a red wine lipstick under $40</div>
+  <div class="bub b">Here are my top picks for you ✨</div>
+  <div class="mini">
+   <div class="mc"><i style="background:linear-gradient(145deg,#f8e8ee,#efd3e0)"><svg viewBox="0 0 60 80" height="78" style="display:block;margin:auto"><rect x="18" y="44" width="24" height="30" rx="3" fill="#222"/><path d="M21 44V24q0-10 9-10t9 10v20z" fill="#6b1d34"/></svg></i><div><b>BRAND</b>Merlot Matte Lipstick<br><u>$28.00</u></div></div>
+   <div class="mc"><i style="background:linear-gradient(145deg,#efe5ff,#e2d3f7)"><svg viewBox="0 0 60 80" height="78" style="display:block;margin:auto"><rect x="18" y="44" width="24" height="30" rx="3" fill="#222"/><path d="M21 44V24q0-10 9-10t9 10v20z" fill="#8e2750"/></svg></i><div><b>BRAND</b>Deep Berry Lip Colour<br><u>$24.00</u></div></div>
+  </div>
+  <div class="bub u">make it matte</div>
  </div>
- <div class="qb" data-cat="makeup" style="display:none">
-  <label>Skin tone<select id="mtone"><option value="">Not sure</option><option>fair</option><option>light</option><option>medium</option><option>tan</option><option>deep</option></select></label>
-  <label>Undertone<select id="mund"><option value="">Not sure</option><option>warm</option><option>cool</option><option>neutral</option><option>olive</option></select></label>
-  <label>Finish<select id="mfin"><option value="">Any</option><option>matte</option><option>natural</option><option>radiant</option></select></label>
- </div>
- <div class="qb" data-cat="fragrance" style="display:none">
-  <div class="note" style="margin:0 0 2px">Scents you like</div>
-  <div class="cc"><label class="chk"><input type="checkbox" name="sc" value="floral">Floral</label><label class="chk"><input type="checkbox" name="sc" value="fresh">Fresh</label><label class="chk"><input type="checkbox" name="sc" value="woody">Woody</label><label class="chk"><input type="checkbox" name="sc" value="warm">Warm &amp; spicy</label></div>
- </div>
- <div class="qb" data-cat="body" style="display:none">
-  <div class="note" style="margin:0 0 2px">Body concerns</div>
-  <div class="cc"><label class="chk"><input type="checkbox" name="bc" value="dryness">Dryness</label><label class="chk"><input type="checkbox" name="bc" value="dullness">Dullness / rough texture</label><label class="chk"><input type="checkbox" name="bc" value="firmness">Firmness</label><label class="chk"><input type="checkbox" id="bsens">Fragrance-free only</label></div>
- </div>
- <div class="row"><button id="qgo">Get my picks</button></div>
 </div>
-<div class="or"><span>or get a closer look</span></div>
-<div id="photo">
- <div class="note" style="margin:0 0 6px"><b>Add a photo (optional).</b> I'll look at your skin (and hair, if it's in the shot) and combine it with your answers above. Use bright, even light and no makeup.</div>
- <div class="priv">🔒 <span id="privtxt">Your photo is used only for this one skin check and <b>deleted right after</b>. We never save it.</span></div>
- <div id="drop">Drop a bare-face photo here<br>or click to choose<input id="file" type="file" accept="image/*" hidden></div>
- <div class="row" id="camrow"><button class="sec" id="cam">📷 Use camera</button></div>
- <div id="camview" style="display:none"><video id="vid" playsinline muted style="width:100%;border-radius:10px;transform:scaleX(-1);background:#000"></video>
-  <div class="row"><button id="snap">Take photo</button><button class="sec" id="camoff">Cancel</button></div></div>
- <img id="prev" alt="">
- <label class="chk"><input type="checkbox" id="consent"><span><span id="consenttxt">I agree to have my photo analysed once. It's deleted right after and never saved.</span></span></label>
- <div class="row"><button id="go" disabled>Analyze &amp; delete</button><button id="del" class="sec" disabled>Delete now</button></div>
- <div class="row"><button id="retake" class="sec" style="display:none">↻ Retake photo</button></div>
- <div id="nokey" class="note" style="display:none">Photo skin checks aren't available right now. You can still get personalised picks from the questions above.</div>
-</div>
-<p class="note">Cosmetic suggestions only, not medical advice. For persistent or painful skin concerns, please see a dermatologist.</p>
-</aside></main>
+
+<section>
+ <h2>What are you shopping for?</h2><p class="sub">Pick a category and I'll get you started.</p>
+ <div class="tiles">
+  <a class="tile t1" href="/chat?q=Recommend%20products%20for%20oily%20skin"><span class="e">🧴</span><span><b>Skincare</b><small>Serums, moisturisers, cleansers</small></span></a>
+  <a class="tile t2" href="/chat?q=I%20want%20a%20red%20wine%20lipstick"><span class="e">💄</span><span><b>Makeup</b><small>Shades matched to you</small></span></a>
+  <a class="tile t3" href="/chat?q=I%20need%20something%20for%20my%20hair"><span class="e">💇‍♀️</span><span><b>Hair</b><small>For your type and concerns</small></span></a>
+  <a class="tile t4" href="/chat?q=Recommend%20a%20woody%20perfume"><span class="e">🌸</span><span><b>Fragrance</b><small>Floral, fresh, woody, warm</small></span></a>
+  <a class="tile t5" href="/chat?q=body%20lotion%20for%20dry%20skin"><span class="e">🛁</span><span><b>Body</b><small>Lotions, washes, scrubs</small></span></a>
+ </div>
+</section>
+
+<section>
+ <h2>How it works</h2><p class="sub">Three easy steps.</p>
+ <div class="steps">
+  <div class="step"><div class="n">1</div><b>Tell me what you need</b><p>Type a question, or answer a few quick questions about your skin, hair and style.</p></div>
+  <div class="step"><div class="n">2</div><b>Get matched</b><p>I compare ingredients and what real customers say, and show picks that suit you. Add a photo for a closer look. It's deleted right after.</p></div>
+  <div class="step"><div class="n">3</div><b>Add to bag</b><p>Compare, read reviews, and add your favourites to the bag when you're ready.</p></div>
+ </div>
+</section>
+
+<section>
+ <h2>Not sure where to start?</h2><p class="sub">Try one of these.</p>
+ <div class="chips">
+  <a href="/chat?q=What%20does%20niacinamide%20do%3F">What does niacinamide do?</a>
+  <a href="/chat?q=Best%20for%20sensitive%20skin">Best for sensitive skin</a>
+  <a href="/chat?q=Which%20products%20contain%20hyaluronic%20acid%3F">Products with hyaluronic acid</a>
+  <a href="/chat?q=shampoo%20for%20curly%20hair%20with%20frizz">Shampoo for curly, frizzy hair</a>
+  <a href="/chat?q=foundation%20for%20medium%20skin%20with%20warm%20undertone">Foundation for medium, warm skin</a>
+  <a href="/chat?q=Recommend%20a%20floral%20perfume">A floral perfume</a>
+ </div>
+</section>
+
+<section>
+ <div class="band">
+  <div><h2>Ready when you are</h2><p>Your skin check and picks take about a minute.</p></div>
+  <a class="btn" href="/chat">Start chatting →</a>
+ </div>
+</section>
+
+<footer>Cosmetic suggestions only, not medical advice. For persistent or painful skin concerns, please see a dermatologist.<br>Product details and prices are for guidance and may differ from what's in store.</footer>
+
 <script>
-const OFFLINE='The concierge is taking a short break and can\'t answer right now. Please check back a little later.';
-const API=(/^(localhost|127\.0\.0\.1|\[::1\])$/.test(location.hostname)?'':(window.API_BASE||'')).replace(/\/$/,''),$=id=>document.getElementById(id),log=$('log'),CONC={acne_blemishes:'Acne / blemishes',redness_sensitivity:'Redness / sensitivity',dark_spots:'Dark spots',fine_lines:'Fine lines',dullness:'Dullness',dehydration:'Dehydration',oiliness_pores:'Oil / pores'};
-if(API){const _f=window.fetch.bind(window);window.fetch=(u,o={})=>_f(u,{...o,headers:{...(o.headers||{}),'ngrok-skip-browser-warning':'1'}})}
-const HC={frizz:'Frizz',dryness:'Dryness',damage:'Damage',color_care:'Colour care',volume:'Volume',thinning:'Thinning',dry_scalp:'Dry scalp',oily_scalp:'Oily scalp',shine:'Shine'};
-$('hc').innerHTML=Object.entries(HC).map(([k,v])=>`<label class="chk"><input type="checkbox" value="${k}">${v}</label>`).join('');
-$('pc').innerHTML=Object.entries(CONC).map(([k,v])=>`<label class="chk"><input type="checkbox" value="${k}">${v}</label>`).join('');
-function add(t,c){const d=document.createElement('div');d.className='m '+c;d.textContent=t;log.append(d);log.scrollTop=1e9;return d}
-function typing(){const d=add('','b');d.innerHTML='<span class="dots"><span></span><span></span><span></span></span>';return d}
-const SID=sessionStorage.sid||(sessionStorage.sid=Math.random().toString(36).slice(2)+Date.now().toString(36));  // per-tab conversation id
-const esc=t=>String(t==null?'':t).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
-function tint(str){let h=0;for(const c of String(str))h=(h*31+c.charCodeAt(0))%360;return h}
-function art(p){const h=tint(p.brand),bg=`linear-gradient(145deg,hsl(${h} 35% 96%),hsl(${(h+30)%360} 40% 90%))`,t=(p.type||'').toLowerCase(),c=p.swatch;let svg;
- if(c&&/lip/.test(t)&&!/gloss|balm|liner/.test(t))svg=`<svg viewBox="0 0 60 120"><rect x="14" y="70" width="32" height="46" rx="4" fill="#222"/><rect x="14" y="66" width="32" height="8" fill="#b9a36b"/><path d="M19 66V36q0-14 11-14t11 14v30z" fill="${c}"/><path d="M24 62V40q0-8 6-10" stroke="#fff" stroke-opacity=".35" stroke-width="3" fill="none" stroke-linecap="round"/></svg>`;
- else if(c&&/gloss|balm|stain/.test(t))svg=`<svg viewBox="0 0 60 120"><rect x="20" y="8" width="20" height="38" rx="5" fill="#222"/><path d="M14 46h32l-3 66q0 6-6 6H23q-6 0-6-6z" fill="${c}" fill-opacity=".85"/><path d="M21 52l-1.5 54" stroke="#fff" stroke-opacity=".5" stroke-width="3" stroke-linecap="round"/></svg>`;
- else if(c)svg=`<svg viewBox="0 0 100 100"><circle cx="50" cy="50" r="38" fill="${c}"/><circle cx="38" cy="38" r="10" fill="#fff" fill-opacity=".3"/></svg>`;
- else{const k=`hsl(${h} 45% 62%)`;
-  if(/cleanser|mask|sunscreen|treatment|eye/.test(t))svg=`<svg viewBox="0 0 60 120"><path d="M16 12h28l-3 90H19z" fill="${k}"/><rect x="14" y="96" width="32" height="16" rx="3" fill="#222"/><rect x="21" y="40" width="18" height="26" rx="2" fill="#fff" fill-opacity=".75"/></svg>`;
-  else if(/moistur|cream/.test(t))svg=`<svg viewBox="0 0 100 80"><rect x="12" y="10" width="76" height="20" rx="5" fill="#222"/><rect x="16" y="30" width="68" height="44" rx="8" fill="${k}"/><rect x="30" y="42" width="40" height="18" rx="2" fill="#fff" fill-opacity=".75"/></svg>`;
-  else svg=`<svg viewBox="0 0 60 120"><rect x="24" y="2" width="12" height="20" rx="3" fill="#222"/><rect x="26" y="20" width="8" height="12" fill="#444"/><rect x="12" y="32" width="36" height="80" rx="8" fill="${k}"/><rect x="18" y="56" width="24" height="30" rx="2" fill="#fff" fill-opacity=".75"/></svg>`}
- return `<div class="pimg" style="background:${bg}">${svg}</div>`}
-// ---- bag (demo): kept in this browser tab only (sessionStorage); no real checkout
-let bag=[];try{bag=JSON.parse(sessionStorage.bag||'[]')}catch(e){}
-const money=n=>'$'+n.toFixed(2);
-function saveBag(){sessionStorage.bag=JSON.stringify(bag);renderBag()}
-function toast(t){const e=$('toast');e.textContent=t;e.classList.add('on');clearTimeout(toast.t);toast.t=setTimeout(()=>e.classList.remove('on'),1800)}
-function addToCart(p,btn){const key=p.id+'|'+(p.shade||''),it=bag.find(x=>x.key===key);
- if(it)it.qty++;else bag.push({key,id:p.id,name:p.name,brand:p.brand,price:Number(p.price)||0,shade:p.shade||'',swatch:p.swatch||'',qty:1});
- saveBag();toast('Added to bag: '+p.name);$('cartbtn').classList.remove('bump');void $('cartbtn').offsetWidth;$('cartbtn').classList.add('bump');
- if(btn){const o=btn.textContent;btn.textContent='✓ Added';setTimeout(()=>btn.textContent=o,1200)}}
-function renderBag(){const n=bag.reduce((a,b)=>a+b.qty,0);$('cartn').textContent=n;
- const sub0=bag.reduce((a,b)=>a+b.price*b.qty,0);$('checkout').disabled=!bag.length;
- $('ship').textContent=!bag.length?'':sub0>=FREE?'🎉 You\'ve unlocked free standard delivery.':`Add ${money(FREE-sub0)} more for free standard delivery.`;
- $('subtotal').textContent=money(bag.reduce((a,b)=>a+b.price*b.qty,0));
- $('items').innerHTML=bag.length?bag.map((b,i)=>`<div class="it"><div class="sw" style="background:${esc(b.swatch)||'#f0eeea'}"></div><div class="info"><b>${esc(b.brand)}</b>${esc(b.name)}${b.shade?`<div style="color:#666">${esc(b.shade)}</div>`:''}
-  <div class="qty"><button data-i="${i}" data-d="-1">−</button>${b.qty}<button data-i="${i}" data-d="1">+</button><span style="flex:1"></span><span>${money(b.price*b.qty)}</span></div></div></div>`).join(''):'<p class="note" style="padding:20px 0">Your bag is empty. Add something from the chat.</p>'}
-$('items').onclick=e=>{const i=e.target.dataset.i;if(i===undefined)return;bag[i].qty+=Number(e.target.dataset.d);if(bag[i].qty<1)bag.splice(i,1);saveBag()};
-$('cartbtn').onclick=()=>$('drawer').classList.add('open');$('dclose').onclick=()=>$('drawer').classList.remove('open');
-const FREE=35;
-function shipFee(m,sub){return m==='exp'?12.95:(sub>=FREE?0:5.95)}
-$('clearbag').onclick=()=>{bag=[];saveBag()};renderBag();
-function stars(r){return `<span class="stars">★★★★★<i style="width:${Math.max(0,Math.min(5,r))/5*100}%">★★★★★</i></span>`}
-function detailCard(d){const c=d.card,w=document.createElement('div');w.className='dt';
- const mx=Math.max(...Object.values(d.stars),1);
- const bars=[5,4,3,2,1].map(n=>`<div><span style="width:22px">${n}★</span><i><b style="width:${(d.stars[n]||0)/mx*100}%"></b></i><span style="width:34px;text-align:right;color:#777">${d.stars[n]||0}</span></div>`).join('');
- const shade=c.shade?`<div class="shade">${c.swatch?`<span class="dot" style="background:${esc(c.swatch)}"></span>`:''}<span>${esc(c.shade)}${c.shade_desc?' · '+esc(c.shade_desc):''}</span></div>`:'';
- let h=`<div class="dt-top"><div class="dt-img">${art(c)}</div><div class="dt-main"><div class="br">${esc(c.brand)}</div><h3>${esc(c.name)}</h3>
-  <div>${stars(c.rating)} <span class="rv">${c.rating} · ${Number(c.reviews).toLocaleString()} reviews</span></div>${shade}<div class="pr">$${Number(c.price).toFixed(2)}</div>
-  ${d.recommend[0]!=null?`<div class="rec">👍 ${d.recommend[0]}% of reviewers recommend this</div>`:''}<button class="add">Add to bag</button></div>
-  ${Object.keys(d.stars).length?`<div class="bars">${bars}</div>`:''}</div>`;
- if(d.ingredients.length){const rest=d.ingredients.length;
-  h+=`<div class="dt-sec"><h4>Key ingredients</h4><div class="ichips">${d.key.map(i=>{const r=d.roles[i];return `<span class="ichip${r?' k':''}" ${r?`data-q="What does ${esc(i)} do?"`:''}>${esc(i)}${r?`<small>${esc(r)}</small>`:''}</span>`}).join('')}</div>
-  ${rest>d.key.length?`<details ${d.focus==='ingredients'?'open':''}><summary>See all ${rest} ingredients</summary><p>${d.ingredients.map(esc).join(', ')}</p></details>`:''}</div>`}
- if(d.reviews.length){h+=`<div class="dt-sec"><h4>What customers say${d.skin?` · ${esc(d.skin)} skin`:''}</h4>`+d.reviews.map(r=>{const long=r.text.length>200;
-  return `<div class="rvc"><div class="rvh"><span>${stars(r.rating)}</span><span>${r.skin?`<span class="tag">${esc(r.skin)} skin</span> `:''}${r.free?'<span class="tag free">Received free</span>':''}</span></div>
-  <p>${esc(long?r.text.slice(0,200).replace(/\s+\S*$/,'')+'…':r.text)}${long?` <a data-full="${esc(r.text)}">Read more</a>`:''}</p></div>`}).join('')+`</div>`}
- w.innerHTML=h;
- w.querySelector('.add').onclick=e=>addToCart(c,e.target);
- w.querySelectorAll('.ichip.k').forEach(e=>e.onclick=()=>ask(e.dataset.q));
- w.querySelectorAll('a[data-full]').forEach(a=>a.onclick=()=>{a.parentNode.textContent=a.dataset.full});
- log.append(w);log.scrollTop=1e9}
-function cards(prods){const w=document.createElement('div');w.className='cards';
- for(const p of prods){const c=document.createElement('div');c.className='pc';
-  const shade=p.shade?`<div class="shade">${p.swatch?`<span class="dot" style="background:${esc(p.swatch)}"></span>`:''}<span>${esc(p.shade)}${p.shade_desc?' · '+esc(p.shade_desc):''}</span></div>`:'';
-  const why=(p.why||[]).filter(x=>!x.startsWith('Shade:')).map(x=>`<div class="why">${esc(x)}</div>`).join('');
-  c.innerHTML=art(p)+`<div class="pbody"><div class="pbrand">${esc(p.brand)}</div><div class="pname">${esc(p.name)}</div>
-   <div>${stars(p.rating)}<span class="rv">${p.rating} (${p.reviews})</span></div><div class="price">$${Number(p.price).toFixed(2)}</div>${shade}${why}
-   ${p.fragrance?'<div class="why">Contains fragrance</div>':''}
-   <div class="pbtn"><button class="add">Add to bag</button><button class="d sec">Details</button><button class="sec r">Reviews</button></div></div>`;
-  c.querySelector('.add').onclick=e=>addToCart(p,e.target);
-  c.querySelector('.pname').onclick=c.querySelector('.d').onclick=()=>ask('Tell me about '+p.name);
-  c.querySelector('.r').onclick=()=>ask('What are customers saying about '+p.name+'?');
-  w.append(c)}
- log.append(w);log.scrollTop=1e9}
-async function ask(t){add(t,'u');const w=typing();
- try{const r=await fetch(API+'/ask',{method:'POST',body:t,headers:{'X-Session':SID}});const j=await r.json();w.textContent=j.text;if(j.detail)detailCard(j.detail);if(j.products&&j.products.length)cards(j.products);chips(j.suggestions||[])}catch(e){w.textContent=OFFLINE}}
-$('f').onsubmit=e=>{e.preventDefault();const t=$('q').value.trim();if(t){$('q').value='';ask(t)}};
-function chips(l){$('chips').innerHTML='';if(l.length)$('chips').insertAdjacentHTML('afterbegin','<span style="font-size:12px;color:#777;align-self:center">Suggested:</span>');l.forEach(t=>{const b=document.createElement('button');b.textContent=t;b.onclick=()=>ask(t);$('chips').append(b)})}
-add("Hi, I'm your Sephora Beauty Concierge ✨ Looking for a particular product or shade, curious what an ingredient does, or not sure where to start? Just ask. You can also tell me about your skin, or try the skin check on the right, and I'll find your match.",'b');
-chips(['Which products contain niacinamide?','Recommend products for oily skin','I want a red wine lipstick','Best for sensitive skin','What are customers saying about Gentle Hydra-Gel Face Cleanser?']);
-// ---- tabs
-$('aclose').onclick=()=>document.querySelector('aside').classList.remove('open');
-// ---- results
-const vals=n=>[...document.querySelectorAll(`input[name=${n}]:checked`)].map(i=>i.value),chk=sel=>[...document.querySelectorAll(sel+' input:checked')].map(i=>i.value);
-function consult(){return {cats:chk('#catpick'),skin:{skin_type:$('pst').value,concerns:chk('#pc'),avoid:vals('av')},hair:{type:$('htype').value,concerns:chk('#hc'),avoid:vals('hav')},
- makeup:{tone:$('mtone').value,undertone:$('mund').value,finish:$('mfin').value},fragrance:{scent:vals('sc')},body:{concerns:vals('bc'),sensitive:$('bsens').checked}}}
-document.querySelectorAll('#catpick input').forEach(i=>i.onchange=()=>{if(!chk('#catpick').length)i.checked=true;
- document.querySelectorAll('#catpick .cp').forEach(l=>l.classList.toggle('on',l.querySelector('input').checked));
- document.querySelectorAll('.qb').forEach(q=>q.style.display=chk('#catpick').includes(q.dataset.cat)?'':'none')});
-const SEC_INTRO={skin:'Well-loved picks for your skin. They match on ingredients, and reviewers rate them highly',hair:'Picked for your hair type and concerns',makeup:'Chosen to suit your colouring',fragrance:'Scents in the families you like',body:'Body care to match what you told me'};
-function showResult(r,source){document.querySelector('aside').classList.remove('open');
- const p=r.profile||{},a=r.analysis,cats=r.cats||['skin'],fc=(r.focus||[]).map(c=>CONC[c].toLowerCase());let s='';
- if(cats.includes('skin')){
-  s=source==='your photo'?(p.skin_type?`From your photo, your skin looks ${p.skin_type}`:`I can't tell your skin type from a photo alone`):(p.skin_type?`Thanks for the details! Your skin sounds ${p.skin_type}`:`Thanks for the details!`);
-  s+=fc.length?(p.skin_type?`, and I'd focus on ${fc.join(', ')}.`:`, but I'd focus on ${fc.join(', ')}.`):'.'}
- else s=source==='your photo'?'Thanks for the photo!':'Thanks for the details!';
- if(a){const F={texture_pores:'texture and pores',blemishes:'blemishes',pigmentation:'dark spots or uneven tone',redness:'redness',fine_lines:'fine lines',dryness:'dryness',oiliness:'oiliness'},f=a.findings||{},L={mild:'Mild',moderate:'Moderate',notable:'Noticeable'};
-  const g={};Object.entries(F).forEach(([k,v])=>{const l=L[String(f[k]).toLowerCase()];if(l)(g[l]=g[l]||[]).push(v)});
-  const seen=['Noticeable','Moderate','Mild'].filter(l=>g[l]).map(l=>`${l}: ${g[l].join(', ')}`);
-  if(seen.length)s+=`\n\nWhat I can see in your skin:\n`+seen.map(x=>'• '+x).join('\n');
-  if((a.temporary||[]).length)s+=`\nThat may be temporary (${a.temporary.join(' and ')}), not your natural skin type.`;
-  if(a.skin_tone)s+=`\n\nYour skin tone looks ${a.skin_tone}${a.undertone?` with ${a.undertone} undertones`:''}.`;
-  const h=a.hair||{};if(h.visible)s+=`\n\nYour hair looks ${h.texture||'hard to call'}${['frizz','dryness','damage'].filter(k=>['moderate','notable'].includes(h[k])).length?', with some '+['frizz','dryness','damage'].filter(k=>['moderate','notable'].includes(h[k])).join(' and '):''}.`;
-  if(a.confidence==='low')s+=`\n\nTo be honest, I'm not very sure from this photo, so treat it as a starting point.`}
- if(p.avoid&&p.avoid.length)s+=`\n\nI've left out anything with ${p.avoid.join(', ')}.`;
- add(s,'b');
- let any=false;for(const sec of (r.sections||[])){const d=document.createElement('div');d.className='sech';d.textContent=sec.title;
-  if(sec.products.length){any=true;log.append(d);const n=document.createElement('div');n.className='note';n.style.margin='0 0 4px';n.textContent=SEC_INTRO[sec.key];log.append(n);cards(sec.products)}
-  else{log.append(d);add('I couldn\'t find a strong match here yet. Could you tell me a little more?','b')}}
- if(a)add('A photo can\'t replace an in-person check, so if anything is bothering you, a dermatologist is the best person to ask.'+(a.unusual_spot?' One mark in particular may be worth having looked at.':''),'b');
- log.scrollTop=1e9}
-$('qgo').onclick=async()=>{const w=typing();
- try{const r=await fetch(API+'/match',{method:'POST',body:JSON.stringify(consult())});w.remove();const j=await r.json();showResult(j,'your answers');chips(j.suggestions||[])}catch(e){w.textContent=OFFLINE}};
-// ---- camera (stream is stopped as soon as a photo is taken or cancelled)
-let stream=null,src='file';
-function stopCam(){if(stream){stream.getTracks().forEach(t=>t.stop());stream=null}$('vid').srcObject=null;$('camview').style.display='none';if(!blob){$('camrow').style.display='';$('drop').style.display=''}}
-$('cam').onclick=async()=>{src='cam';try{stream=await navigator.mediaDevices.getUserMedia({video:{facingMode:'user',width:{ideal:1280}},audio:false});
-  $('vid').srcObject=stream;await $('vid').play();$('camview').style.display='';$('drop').style.display='none';$('camrow').style.display='none'}
- catch(e){add('I couldn\'t access the camera ('+(e.name==='NotAllowedError'?'permission denied — allow it in your browser\'s address bar':'no camera found')+'). You can upload a photo instead.','b')}};
-$('camoff').onclick=stopCam;
-$('snap').onclick=async()=>{const v=$('vid'),s=Math.min(1,1024/Math.max(v.videoWidth,v.videoHeight)),cv=document.createElement('canvas');
- cv.width=v.videoWidth*s;cv.height=v.videoHeight*s;cv.getContext('2d').drawImage(v,0,0,cv.width,cv.height);
- const b=await new Promise(r=>cv.toBlob(r,'image/jpeg',.85));stopCam();setBlob(b)};
-// ---- photo (kept in memory; resized & re-encoded client-side, which strips EXIF/location)
-let blob=null;
-function clearPhoto(msg){stopCam();blob=null;$('retake').style.display='none';$('prev').src='';$('prev').style.display='none';$('file').value='';$('go').disabled=true;$('del').disabled=true;$('consent').checked=false;
- $('drop').style.display='';$('camrow').style.display='';if(msg)add(msg,'b')}
-async function load(f){if(!f||!f.type.startsWith('image/'))return;
- const bmp=await createImageBitmap(f),s=Math.min(1,1024/Math.max(bmp.width,bmp.height)),cv=document.createElement('canvas');
- cv.width=bmp.width*s;cv.height=bmp.height*s;cv.getContext('2d').drawImage(bmp,0,0,cv.width,cv.height);
- setBlob(await new Promise(r=>cv.toBlob(r,'image/jpeg',.85)))}
-function setBlob(b){blob=b;$('retake').style.display='';$('prev').src=URL.createObjectURL(blob);$('prev').style.display='block';$('drop').style.display='none';$('camrow').style.display='none';$('del').disabled=false;$('go').disabled=!$('consent').checked}
-$('drop').onclick=()=>{src='file';$('file').click()};$('file').onchange=e=>load(e.target.files[0]);
-$('drop').ondragover=e=>{e.preventDefault();$('drop').classList.add('over')};$('drop').ondragleave=()=>$('drop').classList.remove('over');
-$('drop').ondrop=e=>{e.preventDefault();$('drop').classList.remove('over');load(e.dataTransfer.files[0])};
-$('consent').onchange=()=>{$('go').disabled=!(blob&&$('consent').checked)};
-$('retake').onclick=()=>{const m=src;clearPhoto();m==='cam'?$('cam').click():$('file').click()};
-$('del').onclick=()=>clearPhoto('Done, your photo has been deleted. Nothing was kept.');
-$('go').onclick=async()=>{const b=blob;$('go').disabled=true;const w=typing();
- const b64=await new Promise(r=>{const fr=new FileReader();fr.onload=()=>r(fr.result.split(',')[1]);fr.readAsDataURL(b)});
- try{const r=await fetch(API+'/analyze',{method:'POST',body:JSON.stringify({image:b64,media_type:'image/jpeg',consent:true,consult:consult()})});
-  const j=await r.json();w.remove();
-  clearPhoto();                               // delete immediately after analysis, success or not
-  if(!r.ok){add(j.error||'Sorry, I couldn\'t check that photo. Please try again.','b');return}
-  add('Thanks! I\'ve deleted your photo. Here\'s what I found.','b');showResult(j,'your photo');chips(j.suggestions||[])
- }catch(e){w.remove();clearPhoto();add('Sorry, I couldn\'t check that photo just now. It has been deleted. Please try again, or use the skin questions instead.','b')}};
-function boot(){fetch(API+'/config').then(r=>r.json()).then(c=>{if(boot.t){clearInterval(boot.t);boot.t=null;$('q').disabled=false;$('q').placeholder='Ask about products, ingredients, reviews…';boot.msg&&boot.msg.remove();add('I\'m back! What can I help you find?','b')}return c}).catch(()=>{if(!boot.t){boot.msg=add(OFFLINE,'b');$('q').disabled=true;$('q').placeholder='Currently offline';boot.t=setInterval(boot,5000)}return {}}).then(c=>{if(c.local){$('consenttxt').textContent='I agree to have my photo analysed once. It\'s deleted right after and never saved.'}else if(c.provider){$('consenttxt').textContent='I agree to have my photo analysed once by a secure third-party service. It\'s deleted right after and never saved by us.';$('privtxt').innerHTML='Your photo is sent securely to a third-party analysis service for this one check, then <b>deleted right after</b>. We never save it.'}if(c.image_analysis===false){$('nokey').style.display='block';$('go').title='unavailable'}})}
-boot();
-
-// ---- checkout (details stay in this tab's memory only; nothing is sent anywhere)
-const co={step:1,info:{},ship:'std',pay:'cod',done:null};
-const STEPS=['Delivery','Shipping & payment','Review'];
-const subtotal=()=>bag.reduce((a,b)=>a+b.price*b.qty,0);
-function summary(){const sub=subtotal(),fee=shipFee(co.ship,sub);
- return `<div class="sumbox"><b>Order summary</b>${bag.map(b=>`<div class="l"><span>${b.qty} × ${esc(b.name)}${b.shade?` <small style="color:#777">(${esc(b.shade)})</small>`:''}</span><span>${money(b.price*b.qty)}</span></div>`).join('')}
- <div class="l" style="border-top:1px solid #ddd;padding-top:8px"><span>Subtotal</span><span>${money(sub)}</span></div>
- <div class="l"><span>Delivery</span><span>${co.step>1?(fee?money(fee):'Free'):'Calculated next'}</span></div>
- <div class="l tot"><b>Total</b><b>${money(sub+(co.step>1?fee:0))}</b></div><div class="note">Taxes included.</div></div>`}
-function openCo(){if(!bag.length)return;co.step=1;co.done=null;$('drawer').classList.remove('open');$('co').classList.add('open');renderCo()}
-function closeCo(){$('co').classList.remove('open')}
-$('checkout').onclick=openCo;$('coclose').onclick=closeCo;
-const F=(id,label,ph,type='text')=>`<label>${label}<input id="f_${id}" type="${type}" placeholder="${ph||''}" value="${esc(co.info[id]||'')}" autocomplete="off"></label>`;
-function renderCo(){
- if(co.done)return renderDone();
- $('costeps').innerHTML=STEPS.map((t,i)=>`<span class="${i+1===co.step?'on':i+1<co.step?'done':''}">${i+1<co.step?'✓ ':''}${i+1}. ${t}</span>`).join(' › ');
- let main='';
- if(co.step===1)main=`<h4>Contact</h4>${F('email','Email','you@example.com','email')}${F('phone','Mobile number','For delivery updates','tel')}
-  <h4>Delivery address</h4>${F('name','Full name','')}${F('addr','Address','House / flat no., street')}${F('addr2','Landmark (optional)','')}
-  <div class="two">${F('city','City','')}${F('state','State','')}</div>${F('zip','PIN / ZIP code','')}
-  <button class="pbig" id="next">Continue to shipping</button>`;
- if(co.step===2){const sub=subtotal();main=`<h4>Delivery method</h4>
-  <label class="opt ${co.ship==='std'?'sel':''}"><input type="radio" name="ship" value="std" ${co.ship==='std'?'checked':''}><span style="flex:1"><b><span>Standard delivery</span><span>${sub>=FREE?'Free':money(5.95)}</span></b><small>Arrives in 3–5 working days</small></span></label>
-  <label class="opt ${co.ship==='exp'?'sel':''}"><input type="radio" name="ship" value="exp" ${co.ship==='exp'?'checked':''}><span style="flex:1"><b><span>Express delivery</span><span>${money(12.95)}</span></b><small>Arrives in 1–2 working days</small></span></label>
-  <h4>Payment</h4>
-  <label class="opt sel"><input type="radio" name="pay" value="cod" checked><span style="flex:1"><b><span>Pay on delivery</span></b><small>Cash, UPI or card, whichever you prefer at your door</small></span></label>
-  <button class="pbig" id="next">Review order</button><br><button class="pback" id="back">‹ Back to delivery</button>`}
- if(co.step===3){const i=co.info,fee=shipFee(co.ship,subtotal());main=`<h4>Deliver to</h4><div class="opt" style="cursor:default"><span>${esc(i.name)}<br>${esc(i.addr)}${i.addr2?', '+esc(i.addr2):''}<br>${esc(i.city)}, ${esc(i.state)} ${esc(i.zip)}<br><small>${esc(i.phone)} · ${esc(i.email)}</small></span></div>
-  <h4>Delivery &amp; payment</h4><div class="opt" style="cursor:default"><span>${co.ship==='exp'?'Express delivery (1–2 working days)':'Standard delivery (3–5 working days)'} · ${fee?money(fee):'Free'}<br><small>Pay on delivery</small></span></div>
-  <button class="pbig" id="place">Place order · ${money(subtotal()+fee)}</button><br><button class="pback" id="back">‹ Back</button>
-  <p class="note" style="margin-top:12px">By placing your order you agree to our terms of sale.</p>`}
- $('cobody').innerHTML=`<div class="cogrid"><div>${main}</div>${summary()}</div>`;
- document.querySelectorAll('input[name=ship]').forEach(r=>r.onchange=()=>{co.ship=r.value;renderCo()});
- const nx=$('next');if(nx)nx.onclick=()=>{if(co.step===1&&!readInfo())return;co.step++;renderCo();$('co').querySelector('.cobox').scrollTop=0};
- const bk=$('back');if(bk)bk.onclick=()=>{co.step--;renderCo()};
- const pl=$('place');if(pl)pl.onclick=place}
-function readInfo(){let ok=true;const need=['email','phone','name','addr','city','state','zip'];
- for(const k of ['email','phone','name','addr','addr2','city','state','zip']){const e=$('f_'+k);co.info[k]=e.value.trim()}
- for(const k of need){const e=$('f_'+k);let good=!!co.info[k];if(k==='email')good=/^\S+@\S+\.\S+$/.test(co.info[k]);if(k==='phone')good=co.info[k].replace(/\D/g,'').length>=8;e.classList.toggle('bad',!good);if(!good)ok=false}
- if(!ok){toast('Please check the highlighted fields');const b=document.querySelector('#cobody .bad');if(b)b.focus()}return ok}
-function place(){const b=$('place');b.disabled=true;b.textContent='Placing your order…';
- setTimeout(()=>{const sub=subtotal(),fee=shipFee(co.ship,sub),d=new Date();d.setDate(d.getDate()+(co.ship==='exp'?2:5));
-  co.done={no:'SEP-'+Math.floor(100000+Math.random()*900000),total:sub+fee,items:bag.map(x=>({...x})),eta:d.toLocaleDateString(undefined,{weekday:'long',day:'numeric',month:'long'}),name:co.info.name.split(' ')[0],email:co.info.email,fee,sub,exp:co.ship==='exp'};
-  bag=[];saveBag();co.info={};renderCo()},1300)}
-function renderDone(){const o=co.done;$('costeps').innerHTML='';
- $('cobody').innerHTML=`<div class="thanks"><div class="tick">✓</div><h2 style="margin:0 0 6px">Thank you, ${esc(o.name)}!</h2><p style="margin:0 0 4px">Your order <b>${o.no}</b> is confirmed.</p>
-  <p style="margin:0 0 18px;color:#555">Estimated delivery by <b>${o.eta}</b>. We'll send updates to ${esc(o.email)}.</p>
-  <div class="sumbox" style="max-width:420px;margin:0 auto 18px;text-align:left">${o.items.map(b=>`<div class="l"><span>${b.qty} × ${esc(b.name)}</span><span>${money(b.price*b.qty)}</span></div>`).join('')}
-  <div class="l"><span>Delivery</span><span>${o.fee?money(o.fee):'Free'}</span></div><div class="l tot"><b>Total · pay on delivery</b><b>${money(o.total)}</b></div></div>
-  <button class="pbig" style="max-width:300px" id="cont">Continue shopping</button>
-  <p class="note" style="margin-top:14px">This storefront is a sample: no payment is taken and nothing will actually ship.</p></div>`;
- $('cont').onclick=()=>{closeCo();add('Your order '+o.no+' is confirmed. Is there anything else I can help you find?','b')}}
+const API=(/^(localhost|127\.0\.0\.1|\[::1\])$/.test(location.hostname)?'':(window.API_BASE||'')).replace(/\/$/,'');
+fetch(API+'/config',API?{headers:{'ngrok-skip-browser-warning':'1'}}:{}).then(r=>r.json()).then(()=>{document.getElementById('dot').className='dot on';document.getElementById('status').textContent='Concierge is online'})
+ .catch(()=>{document.getElementById('status').textContent='Taking a short break. Check back soon.'});
 </script>

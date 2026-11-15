@@ -80,7 +80,8 @@ class H(BaseHTTPRequestHandler):
             pv = skin.provider(); return self._send({"image_analysis": bool(pv), "provider": pv, "local": pv == skin.LOCAL_NAME})
         if self.path.split("?")[0] == "/config.js":
             return self._send(open(os.path.join(root, "web/config.js"), encoding="utf-8").read(), "application/javascript")
-        self._send(open(os.path.join(root, "web/index.html"), encoding="utf-8").read(), "text/html")
+        page = "web/chat.html" if self.path.split("?")[0] in ("/chat", "/chat.html") else "web/index.html"   # "/" is the welcome page
+        self._send(open(os.path.join(root, page), encoding="utf-8").read(), "text/html")
 
     def do_POST(self):
         n = int(self.headers.get("Content-Length", 0))
