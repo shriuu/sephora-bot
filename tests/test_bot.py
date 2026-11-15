@@ -11,9 +11,12 @@ class T(unittest.TestCase):
         self.assertIn("Glow Niacinamide Serum", [p["name"] for p in r["products"]])
     def test_medical(self): self.assertIn("dermatologist", self.b.ask("Is it safe for my eczema?"))
     def test_policy(self): self.assertIn("returns, shipping", self.b.ask("What is the return policy?"))
-    def test_reviews(self): self.assertIn("customers", self.b.ask("What are customers saying about Glow Niacinamide Serum?"))
+    def test_reviews(self):
+        r = self.rich("What are customers saying about Glow Niacinamide Serum?")
+        self.assertEqual(r["detail"]["name"], "Glow Niacinamide Serum"); self.assertTrue(r["detail"]["reviews"])
     def test_compare(self): self.assertIn("Barrier Cream Moisturizer", self.b.ask("difference between Barrier Cream Moisturizer and Light Gel Moisturizer"))
-    def test_unknown(self): self.assertNotIn("$", self.b.ask("tell me about Zzz Lipstick"))
+    def test_unknown(self):
+        r = self.rich("tell me about Zzz Lipstick"); self.assertFalse(r["products"]); self.assertNotIn("detail", r)
     def test_smalltalk(self): self.assertTrue(len(self.rich("hello")["text"]) > 20)
     def test_yes_followup(self):
         st = {}; self.rich("What does niacinamide do?", st)
