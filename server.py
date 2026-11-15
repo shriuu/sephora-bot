@@ -56,7 +56,7 @@ class H(BaseHTTPRequestHandler):
                 q = body.decode(); st = self._state(); r = bot.ask_rich(q, st); r["suggestions"] = bot.suggest(q, state=st); return self._send(r)
             data = json.loads(body)
             if self.path == "/recommend":
-                r = skin.recommend(bot.con, data); r["suggestions"] = bot.suggest("", r["profile"] | {"focus": r["focus"], "top_ingredients": r.get("top_ingredients")})
+                r = skin.recommend(bot.con, data, salt=self._state().setdefault("salt", __import__("random").random())); r["suggestions"] = bot.suggest("", r["profile"] | {"focus": r["focus"], "top_ingredients": r.get("top_ingredients")})
                 if r["profile"].get("skin_type"): self._state()["skin"] = r["profile"]["skin_type"]
                 return self._send(r)
             if self.path == "/analyze":
@@ -71,13 +71,13 @@ class H(BaseHTTPRequestHandler):
                 # consultation answers (user-reported) are combined with what the photo shows
                 prof = {"skin_type": a.get("skin_type") if a.get("skin_type") in skin.SKIN_TYPES else (feel.get("skin_type") or None),
                         "concerns": list(dict.fromkeys(a.get("concerns", []) + [c for c in feel.get("concerns", []) if c in skin.CONCERNS])),
-                        "avoid": feel.get("avoid", [])}
-                r = skin.recommend(bot.con, prof); st_ = self._state()
+                        "avoid": feel.get("avoid", []), "weights": {**a.get("weights", {}), **{c: 3 for c in feel.get("concerns", [])}}}
+                st_ = self._state(); r = skin.recommend(bot.con, prof, salt=st_.setdefault("salt", __import__("random").random()))
                 if r["profile"].get("skin_type"): st_["skin"] = r["profile"]["skin_type"]
                 st_["focus"] = r["focus"]; r["suggestions"] = bot.suggest("", r["profile"] | {"focus": r["focus"], "top_ingredients": r.get("top_ingredients")})
                 return self._send({"analysis": a, "deleted": True, **r})
         except RuntimeError as e:
-            if str(e) == "NO_KEY": return self._send({"error": "Photo skin checks aren't available right now. The quick quiz will give you personalised picks in the meantime."}, code=503)
+            if str(e) == "NO_KEY": return self._send({"error": "Photo skin checks aren't available right now. You can still get personalised picks from the skin questions."}, code=503)
             return self._send({"error": "Sorry, something went wrong. Please try again."}, code=500)
         except urllib.error.HTTPError as e:
             try: msg = json.load(e)["error"]["message"]
@@ -85,10 +85,10 @@ class H(BaseHTTPRequestHandler):
             print(f"[analyze] {skin.provider()} API error {e.code}: {msg[:200]}", file=sys.stderr, flush=True)
             hint = {401: "The API key was rejected.", 429: "Quota or rate limit reached — check billing/credits.",
                     404: "That model isn't available to this key."}.get(e.code, "The provider returned an error.")
-            return self._send({"error": "Sorry, the skin check isn't available right now. Please try the quick quiz instead."}, code=502)
+            return self._send({"error": "Sorry, the skin check isn't available right now. You can still get picks from the skin questions instead."}, code=502)
         except Exception as e:
             print(f"[analyze] {type(e).__name__}: {str(e)[:200]}", file=sys.stderr, flush=True)
-            return self._send({"error": "Sorry, I couldn't check that photo just now. Please try again, or use the quick quiz."}, code=500)
+            return self._send({"error": "Sorry, I couldn't check that photo just now. Please try again, or use the skin questions instead."}, code=500)
         self._send({"error": "Not found"}, code=404)
 
     def log_message(self, *a): pass   # never log request details

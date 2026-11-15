@@ -1,3 +1,4 @@
+import random
 """Plain-language guide to common skincare ingredients and product types.
 General cosmetic information only (not medical advice). Keys are canonical names; aliases are matched in user text/ingredient lists."""
 
@@ -62,7 +63,7 @@ def explain_ingredient(name):
     out = f"{name.title()} in a nutshell: {role}. {desc}"
     if good != "n/a": out += f" It tends to suit {good}."
     if note: out += f" {note}"
-    return out + f"\n\nWant me to show you some well-reviewed products with {name}?"
+    return out + "\n\n" + random.choice([f"Want me to show you some well-reviewed products with {name}?", f"I can pull up a few products with {name} if you like.", f"Shall I find you some good {name} products?"])
 
 def find_product_type(text):
     t = _norm(text)
@@ -70,4 +71,4 @@ def find_product_type(text):
         if any(k in t for k in kws): return name
     return None
 
-def explain_type(name): return f"{PRODUCT_TYPES[name][0]}\n\nWant me to pick out a few well-reviewed {name}s for you?"
+def explain_type(name): return f"{PRODUCT_TYPES[name][0]}\n\n" + random.choice([f"Want me to pick out a few well-reviewed {name}s for you?", f"I can show you some popular {name}s if that helps.", f"Shall I find a {name} that suits your skin?"])

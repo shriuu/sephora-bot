@@ -1,11 +1,15 @@
 """Router + grounded answers. Every fact is tagged with its source; opinions are labelled as reviews."""
-import re
+import random, re
 from .guardrails import *
 from .retrieval import BM25
 from . import skin as skinmod, glossary
 from .catalogue import Catalogue
 
+def pick(*opts): return random.choice(opts)
+
+
 class Concierge:
+    salt = 0
     def __init__(self, con):
         self.con = con
         self.cat = Catalogue(con)
@@ -97,21 +101,27 @@ class Concierge:
             if typ: self.ctx = {"ptype": typ}; return glossary.explain_type(typ)
         t = next((x for x in skinmod.SKIN_TYPES if x in ql), None)
         if re.search(r"\b(recommend|suggest|best|routine|suits?)\b", ql) and (t or "sensitive" in ql) and not self.find_products(q, fuzzy=False):
-            r = skinmod.recommend(self.con, {"skin_type": t, "sensitive": "sensitive" in ql, "concerns": ["redness_sensitivity"] if "sensitive" in ql else []}, k=5)
+            r = skinmod.recommend(self.con, {"skin_type": t, "sensitive": "sensitive" in ql, "concerns": ["redness_sensitivity"] if "sensitive" in ql else []}, k=5, salt=self.salt)
             if not r["products"]: return "I couldn't find well-reviewed matches for that. Could you tell me a bit more about what you're after?"
             self.ctx["cards"] = r["products"]
-            return f"Here are my top picks for {t or 'sensitive'} skin. They match on ingredients and reviewers with similar skin rate them highly."
+            who = t or "sensitive"
+            return pick(f"Here are my top picks for {who} skin. They match on ingredients, and reviewers with similar skin rate them highly.",
+                        f"For {who} skin, these are the ones I'd look at first: good ingredients and strong reviews.",
+                        f"I picked these with {who} skin in mind. They're well reviewed and have ingredients that tend to help.",
+                        f"These should suit {who} skin nicely. Take a look and tell me if you'd like something lighter, richer or cheaper.")
         m = re.search(r"contain(?:s)?\s+([a-z\- ]+?)\??$", q.strip().lower()) or re.search(r"\b(niacinamide|ceramide|retinol|hyaluronic acid|squalane|glycerin)\b", q.lower())
         prods = self.find_products(q)
         if len(prods) > 1 and not self.find_products(q, fuzzy=False) and not re.search(r"\b(vs|versus|compare|difference)\b", ql): prods = prods[:1]   # loose match: pick the best one
         if m and not prods:
             term = m.group(1).strip(); total, cards_ = self.ingredient_search(term)
-            if not total: return f"I couldn't find any products with {term}. Want me to look for something similar?"
+            if not total: return pick(f"I couldn't find any products with {term}. Want me to look for something similar?", f"Hmm, nothing in the catalogue lists {term}. Shall I try a related ingredient?")
             self.ctx["cards"] = cards_
-            return f"I found {total} product{'s' if total != 1 else ''} with {term}. Here are the best-rated:"
+            n_ = f"{total} product{'s' if total != 1 else ''}"
+            return pick(f"I found {n_} with {term}. Here are the best-rated:", f"{term.title()} shows up in {n_}. These are the ones people rate highest:",
+                        f"Here are the top-rated picks with {term}, out of {n_}:")
         if is_policy(q) and not prods: return POLICY_NOTE
         if len(prods) >= 2 or re.search(r"\b(vs|versus|difference|compare)\b", q.lower()) and prods:
-            out = ["Here's how they compare:"]
+            out = [pick("Here's how they compare:", "Side by side, here's how they stack up:", "Let's compare them:")]
             for pid, _ in prods:
                 n, b, r, nr, pr = self.facts(pid)
                 il = self.ingredient_line(pid, q)
@@ -124,10 +134,14 @@ class Concierge:
             d = self.detail(pid, q, skin)
             self.ctx["detail"] = d
             n = d["name"]
-            return {"ingredients": f"Here's what's in {n}.", "reviews": f"Here's what customers{f' with {skin} skin' if skin else ''} are saying about {n}."}.get(
-                d["focus"], f"Here's the full picture on {n}.")
-        return ("Hmm, I couldn't find that one. Could you give me a product name or an ingredient? "
-                "You can also tell me your skin type, or ask for something like “a nude lipstick under $30”.")
+            sk = f" with {skin} skin" if skin else ""
+            return {"ingredients": pick(f"Here's what's in {n}.", f"This is the ingredient breakdown for {n}.", f"Let's look inside {n}."),
+                    "reviews": pick(f"Here's what customers{sk} are saying about {n}.", f"Customers{sk} have a lot to say about {n}. Here are a few reviews.",
+                                    f"A few honest reviews of {n}{(' from people with ' + skin + ' skin') if skin else ''}:")}.get(
+                d["focus"], pick(f"Here's the full picture on {n}.", f"Here's everything on {n}.", f"Great choice to look into. Here's {n} at a glance."))
+        return pick("Hmm, I couldn't find that one. Could you give me a product name or an ingredient? You can also tell me your skin type, or ask for something like “a nude lipstick under $30”.",
+                    "I'm not sure I caught that. Try a product name, an ingredient, or tell me what you're after, like “a gentle cleanser for dry skin”.",
+                    "That one's not coming up for me. Want to tell me your skin type, or name a product or ingredient you're curious about?")
 
     # ---- personalised follow-up suggestions (only things the bot can actually answer)
     def suggest(self, q, profile=None, n=4, state=None):
@@ -203,10 +217,12 @@ class Concierge:
         st["results"] = [p["name"] for p in prods]
         st["max_price"] = max([p["price"] for p in prods], default=None)
         label = " ".join(x for x in [finish, colour, ttype] if x) + (f" under ${price:g}" if price else "")
-        if not prods: return {"text": f"I couldn't find any {label} right now. Want to try a different shade, finish or budget?", "products": []}
-        if len(prods) == 1: return {"text": f"This is the one I'd pick for {label}:", "products": prods}
+        if not prods: return {"text": pick(f"I couldn't find any {label} right now. Want to try a different shade, finish or budget?", f"No {label} turned up. Shall I look at nearby shades or a bigger budget?"), "products": []}
+        if len(prods) == 1: return {"text": pick(f"This is the one I'd pick for {label}:", f"Just one match for {label}, and it's a good one:"), "products": prods}
         pl = " ".join(x for x in [finish, colour, ttype if ttype.endswith("s") else ttype + "s"] if x) + (f" under ${price:g}" if price else "")
-        return {"text": f"Here are my top {len(prods)} {pl}" + (f", out of {total} options:" if total > len(prods) else ":"), "products": prods}
+        more = f" (out of {total} options)" if total > len(prods) else ""
+        return {"text": pick(f"Here are my top {len(prods)} {pl}{more}:", f"I found some lovely {pl}{more}. These stand out:",
+                             f"Take a look at these {pl}{more}:", f"These {pl} are the ones I'd start with{more}:"), "products": prods}
 
     ORD = {"first": 0, "1st": 0, "second": 1, "2nd": 1, "third": 2, "3rd": 2, "fourth": 3, "4th": 3, "last": -1}
 
@@ -214,6 +230,7 @@ class Concierge:
         """Returns {"text":..., "products":[...]}. `state` is a per-conversation dict (kept in memory only) so
         follow-ups like "make it under $20" or "what about its reviews" can use earlier messages."""
         st = state if state is not None else {}
+        self.salt = st.setdefault("salt", random.random())
         st["kind"] = "other"          # set to "search" again if this turn turns out to be a catalogue search
         ql = q.lower()
         t = next((x for x in skinmod.SKIN_TYPES if x in ql), None)
@@ -278,13 +295,14 @@ class Concierge:
     def _smalltalk(self, ql):
         s = ql.strip(" !.?")
         if re.fullmatch(r"(hi+|hello+|hey+|hiya|namaste|good (morning|afternoon|evening)|hi there|hello there)", s):
-            return "Hi there! 👋 I'm your Sephora Beauty Concierge. Tell me what you're looking for, or ask about an ingredient, and I'll help you find it."
+            return pick("Hi there! 👋 I'm your Sephora Beauty Concierge. Tell me what you're looking for, or ask about an ingredient, and I'll help you find it.",
+                        "Hello! Lovely to see you. Are you after a product, a shade, or some advice for your skin?", "Hey! 💄 What can I help you find today: makeup, skincare, or something specific?")
         if re.fullmatch(r"(thanks|thank you|thx|ty|thanks a lot|thank you so much|cheers)", s):
-            return "You're so welcome! Anything else I can help you find?"
+            return pick("You're so welcome! Anything else I can help you find?", "Happy to help! Want to look at anything else?", "Anytime! Shout if you'd like another recommendation.")
         if re.fullmatch(r"(bye|goodbye|see you|see ya|good night)", s):
-            return "Bye for now! Come back any time you need a beauty recommendation. 💄"
+            return pick("Bye for now! Come back any time you need a beauty recommendation. 💄", "Take care! I'm here whenever you need me. ✨")
         if re.fullmatch(r"(how are you|how are you doing|how's it going)", s):
-            return "Doing great, thanks for asking! What can I help you find today?"
+            return pick("Doing great, thanks for asking! What can I help you find today?", "All good here! What are we shopping for?")
         if re.search(r"\b(who are you|what can you do|what do you do|help me|how does this work)\b", s):
             return ("I'm your beauty concierge. I can find products by type, shade or budget, explain what ingredients do, "
                     "compare products and share what customers say. For personal picks, tell me your skin type or try the skin check on the right.")

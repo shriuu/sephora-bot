@@ -3,7 +3,7 @@
 Privacy: images are only ever held in memory for the duration of one request. They are never
 written to disk or logged. Analysis is cosmetic/informational, never a medical diagnosis.
 """
-import base64, json, os, re, ssl, urllib.request
+import base64, json, math, os, random, re, ssl, urllib.request
 from . import glossary
 
 
@@ -40,10 +40,11 @@ def normalise(profile):
     t = t if t in SKIN_TYPES else None
     cs = [c for c in profile.get("concerns", []) if c in CONCERNS]
     avoid = [x for x in profile.get("avoid", []) if x in AVOID]
-    return {"skin_type": t, "concerns": cs, "avoid": avoid, "sensitive": bool(profile.get("sensitive") or "redness_sensitivity" in cs or "fragrance" in avoid)}
+    wt = {c: float(v) for c, v in (profile.get("weights") or {}).items() if c in CONCERNS}
+    return {"skin_type": t, "concerns": cs, "avoid": avoid, "weights": wt, "sensitive": bool(profile.get("sensitive") or "redness_sensitivity" in cs or "fragrance" in avoid)}
 
 
-def recommend(con, profile, k=6):
+def recommend(con, profile, k=6, salt=None):
     p = normalise(profile)
     concerns = p["concerns"] or TYPE_DEFAULTS.get(p["skin_type"], ["dehydration"])
     kws = {kw for c in concerns for kw in CONCERNS[c]}
@@ -68,16 +69,24 @@ def recommend(con, profile, k=6):
         if p["skin_type"]:
             r = con.execute("SELECT AVG(recommended),COUNT(*) FROM reviews WHERE product_id=? AND skin_type=?", (pid, p["skin_type"])).fetchone()
             rate, n = r[0], r[1]
-        score = 2 * len(kw) + (rating - 4) + (2 * rate if rate is not None and n >= 10 else 0)
+        cover = sum(p["weights"].get(c, 3 if c in p["concerns"] else 1) * len(set(CONCERNS[c]) & kw) for c in concerns)   # severity-weighted
+        score = 1.5 * cover + (rating - 4) + (2 * rate if rate is not None and n >= 10 else 0) + min(math.log10(max(nrev, 1)), 4) * 0.15
         why = ["Contains " + ", ".join(f"{k} ({glossary.short(k) or 'skin-conditioning'})" for k in sorted(kw))]
         if rate is not None and n >= 10: why.append(f"{round(rate*100)}% of {n} reviewers with {p['skin_type']} skin recommend it")
         scored.append((score, dict(id=pid, name=name, brand=brand, price=price, rating=round(rating, 1), reviews=nrev,
                                    type=sub, why=why, fragrance=fragranced)))
-    # keep variety: at most 2 per subcategory in the top picks
+    # pick from the strongest candidates with a weighted draw, so similar profiles are not all given the identical list.
+    # The draw is seeded by the profile + this visitor's salt: stable for one person, different between people.
+    rng = random.Random(f"{salt}|{p['skin_type']}|{sorted(concerns)}|{sorted(p['avoid'])}")
+    pool = sorted(scored, key=lambda x: -x[0])[:30]
     out, seen = [], {}
-    for _, d in sorted(scored, key=lambda x: -x[0]):
-        if seen.get(d["type"], 0) < 2: out.append(d); seen[d["type"]] = seen.get(d["type"], 0) + 1
-        if len(out) >= k: break
+    while pool and len(out) < k:
+        top = pool[0][0]
+        wts = [math.exp((sc - top) / 2.5) for sc, _ in pool]
+        i = rng.choices(range(len(pool)), weights=wts)[0]
+        _, d = pool.pop(i)
+        if seen.get(d["type"], 0) >= 2 or any(d["name"].lower().replace("mini ", "") == o["name"].lower() for o in out): continue
+        out.append(d); seen[d["type"]] = seen.get(d["type"], 0) + 1
     from collections import Counter
     top = Counter(k for d in out for k in re.findall(r"(?:Contains |, )([a-z][a-z ]+?) \(", d["why"][0]) if glossary.find_ingredient(k))
     return {"profile": p, "focus": concerns, "products": out, "top_ingredients": [glossary.find_ingredient(k) for k, _ in top.most_common(2)]}
@@ -152,7 +161,12 @@ def derive(a):
     for t in a.get("temporary", []) or []:
         c = {"dehydration": "dehydration", "irritation": "redness_sensitivity"}.get(t)
         if c and c not in cs: cs.append(c)
-    a["concerns"] = cs
+    w = {}
+    for area, c in AREA.items():
+        lv = LEVEL.get(str(f.get(area, "none")).lower(), 0)
+        if lv: w[c] = max(w.get(c, 0), lv)
+    for c in cs: w.setdefault(c, 2)
+    a["concerns"] = cs; a["weights"] = w
     return a
 
 
