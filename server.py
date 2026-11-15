@@ -2,7 +2,7 @@ import json, os, sys, urllib.error
 from http.server import BaseHTTPRequestHandler, HTTPServer
 from src.db import build
 from src.answer import Concierge
-from src import skin
+from src import skin, match
 root = os.path.dirname(os.path.abspath(__file__))
 k = os.path.join(root, "data/kaggle")
 d = k if os.path.exists(os.path.join(k, "product_info.csv")) else os.path.join(root, "data/sample")
@@ -34,6 +34,41 @@ class H(BaseHTTPRequestHandler):
             SESSIONS[sid] = {}
         return SESSIONS[sid]
 
+    def _match(self, c, a=None):
+        """Combine the person's answers (and, if given, the photo findings) into one profile and recommend across categories."""
+        c = c if isinstance(c, dict) and "cats" in c else {"cats": ["skin"], "skin": c if isinstance(c, dict) else {}}
+        st = self._state(); salt = st.setdefault("salt", __import__("random").random())
+        cats = [x for x in c.get("cats", []) if x in match.TITLES] or ["skin"]
+        sk, hr, mk = dict(c.get("skin") or {}), dict(c.get("hair") or {}), dict(c.get("makeup") or {})
+        mine = [x for x in sk.get("concerns", []) if x in skin.CONCERNS]
+        if a:
+            sk["skin_type"] = a.get("skin_type") if a.get("skin_type") in skin.SKIN_TYPES else (sk.get("skin_type") or None)
+            sk["concerns"] = list(dict.fromkeys(a.get("concerns", []) + mine))
+            sk["weights"] = {**a.get("weights", {}), **{x: 3 for x in mine}}
+            mk["tone"] = mk.get("tone") or a.get("skin_tone"); mk["undertone"] = mk.get("undertone") or a.get("undertone")
+            h = a.get("hair") or {}
+            if h.get("visible"):
+                hr["type"] = hr.get("type") or h.get("texture")
+                lv = {"mild": 1, "moderate": 2, "notable": 3}
+                hc = [k for k in ("frizz", "dryness", "damage") if lv.get(h.get(k), 0) >= 2]
+                hr["concerns"] = list(dict.fromkeys(hc + [x for x in hr.get("concerns", []) if x in match.HAIR_TAGS]))
+                hr["weights"] = {**{k: lv[h[k]] for k in hc}, **{x: 3 for x in c.get("hair", {}).get("concerns", [])}}
+        b = dict(c.get("body") or {})
+        if not b.get("concerns") and sk.get("skin_type") in ("dry", "normal"): b["concerns"] = ["dryness"]
+        b["sensitive"] = b.get("sensitive") or "fragrance" in sk.get("avoid", []) or "redness_sensitivity" in sk.get("concerns", [])
+        prof = {"cats": cats, "skin": sk, "hair": hr, "makeup": mk, "fragrance": c.get("fragrance") or {}, "body": b}
+        secs, extra = match.sections(bot.con, bot.cat, prof, salt)
+        out = {"sections": secs, "cats": cats, **extra}
+        if "skin" in cats:
+            st["skin"] = extra["profile"].get("skin_type") or st.get("skin")
+            st["focus"] = extra["focus"]
+            out["products"] = secs[cats.index("skin")]["products"]
+            out["suggestions"] = bot.suggest("", extra["profile"] | {"focus": extra["focus"], "top_ingredients": extra.get("top_ingredients")})
+        else:
+            out["profile"] = {"skin_type": None, "concerns": [], "avoid": []}; out["focus"] = []; out["products"] = []
+            out["suggestions"] = bot.suggest("", {"cats": cats, **{"hair": hr, "makeup": mk}})
+        return out
+
     def _send(self, obj, ctype="application/json", code=200):
         b = (obj if isinstance(obj, str) else json.dumps(obj)).encode()
         self.send_response(code); self.send_header("Content-Type", ctype + "; charset=utf-8")
@@ -55,27 +90,18 @@ class H(BaseHTTPRequestHandler):
             if self.path == "/ask":
                 q = body.decode(); st = self._state(); r = bot.ask_rich(q, st); r["suggestions"] = bot.suggest(q, state=st); return self._send(r)
             data = json.loads(body)
-            if self.path == "/recommend":
-                r = skin.recommend(bot.con, data, salt=self._state().setdefault("salt", __import__("random").random())); r["suggestions"] = bot.suggest("", r["profile"] | {"focus": r["focus"], "top_ingredients": r.get("top_ingredients")})
-                if r["profile"].get("skin_type"): self._state()["skin"] = r["profile"]["skin_type"]
-                return self._send(r)
+            if self.path in ("/recommend", "/match"):
+                return self._send(self._match(data))
             if self.path == "/analyze":
                 if not data.get("consent"): return self._send({"error": "Consent is required."}, code=400)
-                img = data.pop("image", ""); feel = data.get("consult") or {}
+                img = data.pop("image", ""); consult = data.get("consult") or {}
                 try:
                     a = skin.analyze_image(img, data.get("media_type", "image/jpeg"))
                 finally:
                     del img, data, body   # image bytes live only in this request's memory; nothing is stored
-                if not a.get("usable", True):
-                    return self._send({"error": "I couldn't see your skin clearly in that photo. Could you try again in bright, even light, facing the camera?"}, code=422)
-                # consultation answers (user-reported) are combined with what the photo shows
-                prof = {"skin_type": a.get("skin_type") if a.get("skin_type") in skin.SKIN_TYPES else (feel.get("skin_type") or None),
-                        "concerns": list(dict.fromkeys(a.get("concerns", []) + [c for c in feel.get("concerns", []) if c in skin.CONCERNS])),
-                        "avoid": feel.get("avoid", []), "weights": {**a.get("weights", {}), **{c: 3 for c in feel.get("concerns", [])}}}
-                st_ = self._state(); r = skin.recommend(bot.con, prof, salt=st_.setdefault("salt", __import__("random").random()))
-                if r["profile"].get("skin_type"): st_["skin"] = r["profile"]["skin_type"]
-                st_["focus"] = r["focus"]; r["suggestions"] = bot.suggest("", r["profile"] | {"focus": r["focus"], "top_ingredients": r.get("top_ingredients")})
-                return self._send({"analysis": a, "deleted": True, **r})
+                if not a.get("usable", True) and not (a.get("hair") or {}).get("visible"):
+                    return self._send({"error": "I couldn't see your skin or hair clearly in that photo. Could you try again in bright, even light?"}, code=422)
+                return self._send({"analysis": a, "deleted": True, **self._match(consult, a)})
         except RuntimeError as e:
             if str(e) == "NO_KEY": return self._send({"error": "Photo skin checks aren't available right now. You can still get personalised picks from the skin questions."}, code=503)
             return self._send({"error": "Sorry, something went wrong. Please try again."}, code=500)

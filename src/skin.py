@@ -92,17 +92,21 @@ def recommend(con, profile, k=6, salt=None):
     return {"profile": p, "focus": concerns, "products": out, "top_ingredients": [glossary.find_ingredient(k) for k, _ in top.most_common(2)]}
 
 
-PROMPT = """You are a cosmetic skincare assistant doing a visual skin check, like the first look in a skin consultation.
+PROMPT = """You are a cosmetic beauty assistant doing a visual check of a photo, like the first look in a consultation.
 Describe ONLY visible, cosmetic characteristics. Do NOT diagnose any medical condition or name diseases.
 Rate each area from the photo as "none", "mild", "moderate" or "notable". Reply with JSON only:
-{"usable": bool (false if no clearly visible skin/face, too dark or blurry),
+{"usable": bool (false if no clearly visible skin AND no visible hair, or the photo is too dark or blurry),
  "findings": {"texture_pores": "..", "blemishes": "..", "pigmentation": "..", "redness": "..", "fine_lines": "..", "dryness": "..", "oiliness": ".."},
  "skin_type": "oily|dry|combination|normal|unclear",
+ "skin_tone": "fair|light|medium|tan|deep|unclear",
+ "undertone": "warm|cool|neutral|olive|unclear",
  "temporary": subset of ["dehydration","irritation"] (short-term states, not the natural skin type),
+ "hair": {"visible": bool, "texture": "straight|wavy|curly|coily|unclear", "frizz": "none|mild|moderate|notable",
+          "dryness": "none|mild|moderate|notable", "damage": "none|mild|moderate|notable"},
  "observations": [up to 4 short plain-language notes of what is visible],
  "unusual_spot": true only if a spot or mark looks unusual enough that an in-person check would be sensible, else false,
  "confidence": "low|medium|high"}
-Photos cannot reliably show skin type; be conservative and prefer "unclear"/low confidence when unsure."""
+Photos cannot reliably show skin type or undertone; be conservative and prefer "unclear"/low confidence when unsure."""
 
 
 LOCAL_URL = os.environ.get("OLLAMA_URL", "http://127.0.0.1:11434")
@@ -183,7 +187,14 @@ def clean(a):
     tmp = a.get("temporary"); tmp = [tmp] if isinstance(tmp, str) else (tmp if isinstance(tmp, list) else [])
     obs = a.get("observations"); obs = [obs] if isinstance(obs, str) else (obs if isinstance(obs, list) else [])
     conf = str(a.get("confidence", "low")).lower()
-    return {"usable": a.get("usable", True) is not False, "findings": fx, "skin_type": st,
+    tone = next((x for x in ("fair", "light", "medium", "tan", "deep") if x == str(a.get("skin_tone", "")).strip().lower()), None)
+    under = next((x for x in ("warm", "cool", "neutral", "olive") if x == str(a.get("undertone", "")).strip().lower()), None)
+    h = a.get("hair") if isinstance(a.get("hair"), dict) else {}
+    hx = {"visible": h.get("visible") is True,
+          "texture": next((x for x in ("straight", "wavy", "curly", "coily") if x == str(h.get("texture", "")).strip().lower()), None)}
+    for k in ("frizz", "dryness", "damage"):
+        v = str(h.get(k, "none")).strip().lower(); hx[k] = v if v in LEVEL else "none"
+    return {"usable": a.get("usable", True) is not False, "findings": fx, "skin_type": st, "skin_tone": tone, "undertone": under, "hair": hx,
             "temporary": [t for t in map(str, tmp) if t in ("dehydration", "irritation")],
             "observations": [str(o)[:160] for o in obs][:4], "unusual_spot": a.get("unusual_spot") is True,
             "confidence": conf if conf in ("low", "medium", "high") else "low",

@@ -4,6 +4,7 @@ from .guardrails import *
 from .retrieval import BM25
 from . import skin as skinmod, glossary
 from .catalogue import Catalogue
+from . import match
 
 def pick(*opts): return random.choice(opts)
 
@@ -146,6 +147,19 @@ class Concierge:
     # ---- personalised follow-up suggestions (only things the bot can actually answer)
     def suggest(self, q, profile=None, n=4, state=None):
         ql, out = q.lower(), []
+        cats = (profile or {}).get("cats") or []
+        hr, mk = (profile or {}).get("hair") or {}, (profile or {}).get("makeup") or {}
+        if "hair" in cats: out += [f"Recommend a shampoo for {hr.get('type') or 'curly'} hair", "Best conditioner for dry hair"]
+        if "makeup" in cats: out += [f"Show me a foundation for {mk.get('tone') or 'medium'} skin", "I want a red wine lipstick"]
+        if "fragrance" in cats: out += ["Recommend a woody perfume", "Recommend a floral perfume"]
+        if "body" in cats: out += ["Recommend a body lotion for dry skin"]
+        CATCHIPS = {"hair": ["Recommend a shampoo for curly hair", "Best conditioner for dry hair", "Something for frizz and damage", "A hair mask for colour-treated hair"],
+                    "fragrance": ["Recommend a woody perfume", "Recommend a floral perfume", "Recommend a fresh perfume", "A warm and spicy perfume"],
+                    "body": ["Recommend a body lotion for dry skin", "A fragrance-free body lotion", "Body wash for sensitive skin", "A hand cream for dry hands"],
+                    "makeup": ["Show me a foundation for tan skin", "I want a red wine lipstick", "Show me a blush", "A foundation for deep skin with cool undertone"]}
+        lc = (state or {}).get("last_cat")
+        if lc in CATCHIPS and not any(c in ql for c in ()):
+            out += CATCHIPS[lc]
         last = (state or {}).get("search") if (state or {}).get("kind") == "search" else None
         if last:   # follow-ups that build on the remembered search
             ty, co, pr, fi = last
@@ -159,12 +173,15 @@ class Concierge:
         prods = self.find_products(q, fuzzy=False)
         ing = glossary.find_ingredient(ql)
         ttype, colour, price, finish = self.cat.parse(q)
-        if ttype and not prods:
+        tcat = self.con.execute("SELECT category FROM products WHERE tertiary=? LIMIT 1", (self.cat.types[ttype][0],)).fetchone() if ttype else None
+        if ttype and not prods and tcat and tcat[0] == "Makeup":
             others = [c for c in ("red wine", "nude", "pink", "coral", "berry") if c != colour][:2]
             out += [f"I want a {others[0]} {ttype}", f"Show me a matte {ttype} under $30" if not price else f"Show me a {colour or 'nude'} {ttype}", f"I want a {others[1]} {ttype}"]
         elif prods:
             pid, name = prods[0]
-            out += [f"What are customers saying about {name}?", f"Does {name} suit {t or 'oily'} skin?"]
+            pc = self.con.execute("SELECT category FROM products WHERE product_id=?", (pid,)).fetchone()
+            out.append(f"What are customers saying about {name}?")
+            if pc and pc[0] in ("Skincare", "Bath & Body", "Men"): out.append(f"Does {name} suit {t or 'oily'} skin?")
             row = self.con.execute("SELECT subcategory,rating FROM products WHERE product_id=?", (pid,)).fetchone()
             other = self.con.execute("""SELECT name FROM products WHERE subcategory=? AND product_id!=? AND n_reviews>=100
                 ORDER BY rating DESC LIMIT 1""", (row[0], pid)).fetchone() if row else None
@@ -231,6 +248,7 @@ class Concierge:
         follow-ups like "make it under $20" or "what about its reviews" can use earlier messages."""
         st = state if state is not None else {}
         self.salt = st.setdefault("salt", random.random())
+        st.pop("last_cat", None)       # set again if this turn is a hair / fragrance / body / makeup answer
         st["kind"] = "other"          # set to "search" again if this turn turns out to be a catalogue search
         ql = q.lower()
         t = next((x for x in skinmod.SKIN_TYPES if x in ql), None)
@@ -263,6 +281,8 @@ class Concierge:
                 base = last[2] or st.get("max_price")
                 p_ = round(base * 0.7) if base else None
             return self._run_search((last[0], colour or last[1], p_ or last[2], finish or last[3]), st)
+        cat_resp = None if any(len(n) >= 18 for _, n in exact) else self._category(q, ql, st)   # short product names ("Body Lotion") are generic, not a specific product
+        if cat_resp: return cat_resp
         # 2) a new catalogue search
         if not exact and self.cat.is_search(q):
             if self.cat.search(q) is not None:
@@ -291,6 +311,56 @@ class Concierge:
         out = {"text": text, "products": (self.ctx or {}).get("cards", [])}
         if (self.ctx or {}).get("detail"): out["detail"] = self.ctx["detail"]; out["products"] = []
         return out
+
+
+    HAIR_CONC = {"frizz": r"frizz", "dryness": r"\bdry (hair|ends)|dryness|hydrat|moistur", "damage": r"damag|breakage|split ends|repair|bleach",
+                 "color_care": r"colou?r|dyed|highlight", "volume": r"volum|flat|limp|fine hair", "thinning": r"thinning|hair (loss|fall)",
+                 "dry_scalp": r"dandruff|flak|dry scalp|itchy scalp", "oily_scalp": r"oily scalp|greasy|oily hair", "shine": r"\bshin"}
+    SCENT_W = {"floral": r"floral|flower|rose|jasmine", "fresh": r"fresh|citrus|clean|aquatic", "woody": r"wood|earthy|sandal|cedar", "warm": r"warm|spic|vanilla|amber|musk"}
+    TONE_W = {"fair": r"\b(fair|pale|porcelain)\b", "light": r"\blight\b", "medium": r"\bmedium\b", "tan": r"\b(tan|tanned)\b", "deep": r"\b(deep|dark)\b"}
+    UNDER_W = {"warm": r"\bwarm|golden|yellow", "cool": r"\bcool|pink|rosy", "neutral": r"\bneutral", "olive": r"\bolive"}
+
+    def _category(self, q, ql, st):
+        """Personalised picks beyond skincare, from free text: hair, fragrance, body care and tone-matched base makeup."""
+        salt = self.salt
+        verbs = re.search(r"\b(recommend|suggest|best|need|want|looking|find|show|something|for|good)\b", ql)
+        if re.search(r"contain|ingredient|what (is|are|does)|customers|reviews?|saying", ql): return None
+        if st.get("awaiting") == "hair" or re.search(r"\b(hair|shampoo|conditioner|scalp|curl|curls|curly|coily|wavy|frizz|dandruff|leave-in)\b", ql):
+            htype = next((t for t in match.HAIR_TYPES if re.search(r"\b" + t, ql)), "curly" if re.search(r"\bcurls?\b", ql) else None)
+            cons = [c for c, rx in self.HAIR_CONC.items() if re.search(rx, ql)]
+            if not htype and not cons and st.get("awaiting") != "hair":
+                if not verbs: return None
+                st["awaiting"] = "hair"
+                return {"text": pick("Happy to help with your hair! What's it like (straight, wavy, curly or coily), and what would you like to improve, like frizz, dryness, damage or an oily scalp?",
+                                     "Let's find your match! Tell me your hair type (straight, wavy, curly, coily) and anything you'd like to fix, such as frizz, dryness, colour care or volume."), "products": []}
+            st.pop("awaiting", None)
+            avoid = [a for a, rx in (("sulfates", r"sulf"), ("silicones", r"silicon"), ("fragrance", r"fragrance|scent")) if re.search(rx + r".{0,6}(free|less)|(no|without|avoid) " + rx, ql)]
+            prods = match.hair(self.con, {"type": htype, "concerns": cons, "avoid": avoid}, 5, salt)
+            if not prods: return {"text": "I couldn't find a strong match for that. Want to try a different hair concern?", "products": []}
+            what = " and ".join(x for x in [htype and f"{htype} hair", *[match.HAIR_TAGS[c][1] for c in cons[:2]]] if x)
+            st["last_cat"] = "hair"
+            return {"text": pick(f"Here are my top picks for {what or 'your hair'}:", f"For {what or 'your hair'}, these are the ones I'd try first:", f"I found some great options for {what or 'your hair'}:"), "products": prods}
+        if re.search(r"\b(perfume|fragrance|cologne|scent|eau de (parfum|toilette))\b", ql) and not re.search(r"free|without|avoid|allerg|sensitiv|no fragrance", ql) and verbs:
+            want = [k for k, rx in self.SCENT_W.items() if re.search(rx, ql)]
+            prods = match.fragrance(self.con, {"scent": want, "unisex": bool(re.search(r"unisex|genderless", ql))}, 5, salt)
+            if not prods: return None
+            what = " and ".join(match.SCENTS[k][1] for k in want[:2]); st["last_cat"] = "fragrance"
+            return {"text": pick(f"Here are some {what + ' ' if what else ''}fragrances I think you'll love:", f"If you like {what or 'a signature scent'}, start with these:", f"These {what + ' ' if what else ''}scents are well loved:"), "products": prods}
+        if re.search(r"\bbody (lotion|wash|butter|care|oil|scrub|cream|moisturi[sz]er)|hand cream|foot cream|shower gel", ql):
+            cons = [c for c, rx in (("dryness", r"dry|dryness|hydrat"), ("dullness", r"dull|rough|texture"), ("firmness", r"firm|sagging")) if re.search(rx, ql)]
+            prods = match.body(self.con, {"concerns": cons, "sensitive": bool(re.search(r"sensitive|fragrance.free|unscented", ql))}, 5, salt)
+            if not prods: return None
+            st["last_cat"] = "body"
+            return {"text": pick("Here are my top body care picks" + (" for " + " and ".join(match.BODY_TAGS[c][1] for c in cons) if cons else "") + ":", "These body care products are well reviewed:"), "products": prods}
+        base = re.search(r"\b(foundation|concealer|tinted moisturi[sz]er|bb cream|cc cream)\b", ql)
+        tone = next((t for t, rx in self.TONE_W.items() if re.search(rx, ql)), None)
+        if base and tone and re.search(r"skin|shade|tone|complexion|for", ql):
+            under = next((u for u, rx in self.UNDER_W.items() if re.search(rx, ql)), None)
+            prods = match.makeup(self.con, self.cat, {"tone": tone, "undertone": under}, 5, salt, parts=("base",))
+            if prods:
+                st["last_cat"] = "makeup"
+                return {"text": pick(f"These should match {tone} skin" + (f" with {under} undertones" if under else "") + ":", f"Shades that work for {tone} skin" + (f" ({under} undertone)" if under else "") + ":"), "products": prods}
+        return None
 
     def _smalltalk(self, ql):
         s = ql.strip(" !.?")
