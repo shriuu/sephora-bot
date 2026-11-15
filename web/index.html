@@ -128,6 +128,53 @@ select{width:100%;padding:8px;border-radius:8px;border:1px solid #bbb;margin:4px
  #vid,#prev{max-height:55vh;object-fit:cover}
  .cobox{max-height:100%}.cogrid{padding:6px 14px 20px}.steps{padding:10px 14px;flex-wrap:wrap}
 }
+
+/* ===== colourful theme (berry / rose / coral) — remove this block to go back to the plain look ===== */
+:root{--acc:#d6246e;--berry:#7a1646;--rose:#e8458b;--coral:#ff7a59;--grad:linear-gradient(135deg,#d6246e 0%,#ff6a4d 100%);--gold:#f2a900}
+body{background:linear-gradient(180deg,#fff3ee 0%,#f8f0ff 55%,#edf8f4 100%) fixed}
+header{background:linear-gradient(100deg,#1a0a14 0%,#5c1237 52%,#c0245f 100%);box-shadow:0 2px 14px rgba(122,22,70,.25)}
+header small{opacity:.9}
+#cartbtn{border-color:rgba(255,255,255,.75);background:rgba(255,255,255,.12)}#cartbtn:hover{background:rgba(255,255,255,.22)}
+#cartn{background:var(--grad)}
+.u{background:linear-gradient(135deg,#8e1f4e,#d6246e);box-shadow:0 3px 10px rgba(214,36,110,.25)}
+.b{border:0;border-left:3px solid var(--rose);box-shadow:0 2px 10px rgba(122,22,70,.07)}
+.dots span{background:var(--rose)}
+.chips button{border:0;color:#3b1530;box-shadow:0 1px 4px rgba(0,0,0,.08);transition:transform .12s,box-shadow .12s}
+.chips button:nth-of-type(4n+1){background:#ffe3d6}.chips button:nth-of-type(4n+2){background:#efe5ff}
+.chips button:nth-of-type(4n+3){background:#dcf4ea}.chips button:nth-of-type(4n+4){background:#ffe0ee}
+.chips button:hover{transform:translateY(-1px);box-shadow:0 4px 10px rgba(122,22,70,.18)}
+input[type=text]:focus{border-color:var(--rose);box-shadow:0 0 0 3px rgba(232,69,139,.18)}
+.send,#checkout,.pbig{background:var(--grad)!important;color:#fff;box-shadow:0 3px 10px rgba(214,36,110,.3)}
+.send:hover,#checkout:hover,.pbig:hover{filter:brightness(1.06)}
+.pc{border:0;border-top:3px solid transparent;border-image:var(--grad) 1;box-shadow:0 2px 10px rgba(122,22,70,.08)}
+.pc:hover{box-shadow:0 8px 24px rgba(214,36,110,.22)}
+.pbrand{color:var(--berry)}.price{color:var(--berry)}
+.stars i{color:var(--gold)}
+.pbtn .add,.dt-main .add{background:var(--grad)!important;border:0;box-shadow:0 2px 8px rgba(214,36,110,.28)}
+.pbtn button{border-color:var(--berry);background:var(--berry)}.pbtn button.sec{background:#fff;color:var(--berry)}
+.why{color:#6b3a52}
+.sech{display:inline-block;background:linear-gradient(90deg,#ffe0ee,#efe5ff);color:var(--berry);padding:5px 14px;border-radius:14px;border-left:4px solid var(--rose)}
+aside{background:linear-gradient(180deg,#fff 0%,#fff6fa 100%);border-left:1px solid #f3d7e4}
+aside h3{color:var(--berry)}
+.cp{background:#fff;border-color:#e8b9cf;color:#5c1237}.cp.on{background:var(--grad);border-color:transparent;color:#fff;box-shadow:0 2px 8px rgba(214,36,110,.3)}
+#qgo,#go{background:var(--grad)!important;border:0!important;color:#fff;box-shadow:0 3px 10px rgba(214,36,110,.3)}#go:disabled{opacity:.45;box-shadow:none}
+.tabs button.on{background:var(--berry);color:#fff}
+.or{color:#b47a96}.or:before,.or:after{border-color:#f0cfdf}
+.priv{background:linear-gradient(90deg,#e6f7ef,#f1fbf6);border-color:#bfe6d3}
+#drop{border-color:#e8a9c6;background:#fff9fc}#drop.over{background:#ffe9f3}
+.dt{border:0;box-shadow:0 4px 18px rgba(122,22,70,.1);border-top:3px solid transparent;border-image:var(--grad) 1}
+.dt-sec h4{color:var(--berry)}
+.ichip{background:#f6eefc}.ichip.k{background:#ffe0ee;color:#5c1237}
+.bars i b{background:var(--gold)}
+.rvc{background:#fffafc;border-color:#f6dce8}.rec{color:#1d7a50}
+.tag{background:#efe5ff;color:#4a2a8a}
+.steps span.on{color:var(--berry)}.steps span.done{color:var(--rose)}
+.opt.sel{border-color:var(--rose);background:#fff5fa}
+.cogrid input:focus,.cogrid select:focus{outline:0;border-color:var(--rose);box-shadow:0 0 0 3px rgba(232,69,139,.15)}
+.sumbox{background:linear-gradient(180deg,#fff8fb,#fff);border-color:#f3d7e4}
+#toast{background:linear-gradient(90deg,#5c1237,#c0245f)}
+.aclose{background:linear-gradient(90deg,#1a0a14,#c0245f)!important}
+#drawer .dh{background:linear-gradient(90deg,#fff3ee,#f8f0ff)}
 </style>
 <header><b>SEPHORA · BEAUTY CONCIERGE</b><span style="display:flex;gap:18px;align-items:center"><button id="cartbtn" aria-label="Open bag">🛍 Bag <span id="cartn">0</span></button><small id="menu" onclick="document.querySelector('aside').classList.toggle('open')" style="cursor:pointer">Skin analysis ▸</small></span></header>
 <div id="toast"></div>
