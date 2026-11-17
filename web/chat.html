@@ -455,7 +455,8 @@ function showResult(r,source){document.querySelector('aside').classList.remove('
   else{log.append(d);add('I couldn\'t find a strong match here yet. Could you tell me a little more?','b')}}
  if(a)add('A photo can\'t replace an in-person check, so if anything is bothering you, a dermatologist is the best person to ask.'+(a.unusual_spot?' One mark in particular may be worth having looked at.':''),'b');
  log.scrollTop=1e9}
-$('qgo').onclick=async()=>{const w=typing();
+function toChat(){if(innerWidth<=820)document.querySelector('aside').classList.remove('open');log.scrollTop=1e9}   // phones: the panel covers the chat, so return to it
+$('qgo').onclick=async()=>{toChat();const w=typing();
  try{const r=await fetch(API+'/match',{method:'POST',body:JSON.stringify(consult())});w.remove();const j=await r.json();showResult(j,'your answers');chips(j.suggestions||[])}catch(e){w.textContent=OFFLINE}};
 // ---- camera (stream is stopped as soon as a photo is taken or cancelled)
 let stream=null,src='file',camTok=0;   // camTok: lets a late-starting camera cancel itself if the section was closed meanwhile
@@ -488,7 +489,7 @@ $('drop').ondrop=e=>{e.preventDefault();$('drop').classList.remove('over');load(
 $('consent').onchange=()=>{$('go').disabled=!(blob&&$('consent').checked)};
 $('retake').onclick=()=>{const m=src;clearPhoto();m==='cam'?$('cam').click():$('file').click()};
 $('del').onclick=()=>clearPhoto('Done, your photo has been deleted. Nothing was kept.');
-$('go').onclick=async()=>{const b=blob;$('go').disabled=true;const w=typing();
+$('go').onclick=async()=>{const b=blob;$('go').disabled=true;toChat();add('Looking at your photo now. The first check can take up to a minute.','b');const w=typing();
  const b64=await new Promise(r=>{const fr=new FileReader();fr.onload=()=>r(fr.result.split(',')[1]);fr.readAsDataURL(b)});
  try{const r=await fetch(API+'/analyze',{method:'POST',body:JSON.stringify({image:b64,media_type:'image/jpeg',consent:true,consult:consult()})});
   const j=await r.json();w.remove();
