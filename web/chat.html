@@ -110,6 +110,9 @@ select{width:100%;padding:8px;border-radius:8px;border:1px solid #bbb;margin:4px
 .thanks{text-align:center;padding:30px 22px 34px}.thanks .tick{width:56px;height:56px;border-radius:50%;background:#1d8a4f;color:#fff;font-size:30px;line-height:56px;margin:0 auto 12px}
 
 .aclose{display:none}
+.photobtn{width:100%;display:flex;justify-content:space-between;align-items:center;gap:8px;background:#fff;color:var(--berry,#7a1646);border:1.5px solid #e8a9c6;border-radius:12px;padding:12px 14px;font-size:14.5px;font-weight:600;cursor:pointer;box-shadow:0 2px 8px rgba(122,22,70,.08)}
+.photobtn:hover{background:#fff5fa}.photobtn i{font-style:normal;transition:transform .2s}.photobtn.open i{transform:rotate(180deg)}
+#photo{margin-top:10px}
 .catpick{display:flex;flex-wrap:wrap;gap:6px;margin:0 0 10px}.cp{border:1px solid #bbb;border-radius:18px;padding:6px 13px;font-size:13px;cursor:pointer;margin:0;display:inline-flex;align-items:center}.cp input{display:none}.cp.on{background:#000;color:#fff;border-color:#000}
 .sech{font-weight:700;margin:14px 0 2px;font-size:14px;letter-spacing:.02em}
 .or{display:flex;align-items:center;gap:10px;margin:16px 0 10px;color:#888;font-size:12px}.or:before,.or:after{content:'';flex:1;border-top:1px solid var(--line)}
@@ -226,8 +229,9 @@ aside h3{color:var(--berry)}
  </div>
  <div class="row"><button id="qgo">Get my picks</button></div>
 </div>
-<div class="or"><span>or get a closer look</span></div>
-<div id="photo">
+<div class="or"><span>or</span></div>
+<button class="photobtn" id="photobtn" aria-expanded="false"><span>📷 Get a closer look with a photo</span><i>▾</i></button>
+<div id="photo" style="display:none">
  <div class="note" style="margin:0 0 6px"><b>Add a photo (optional).</b> I'll look at your skin (and hair, if it's in the shot) and combine it with your answers above. Use bright, even light and no makeup.</div>
  <div class="priv">🔒 <span id="privtxt">Your photo is used only for this one skin check and <b>deleted right after</b>. We never save it.</span></div>
  <div id="drop">Drop a bare-face photo here<br>or click to choose<input id="file" type="file" accept="image/*" hidden></div>
@@ -323,6 +327,8 @@ function chips(l){$('chips').innerHTML='';if(l.length)$('chips').insertAdjacentH
 add("Hi, I'm your Sephora Beauty Concierge ✨ Looking for a particular product or shade, curious what an ingredient does, or not sure where to start? Just ask. You can also tell me about your skin, or try the skin check on the right, and I'll find your match.",'b');
 chips(['Which products contain niacinamide?','Recommend products for oily skin','I want a red wine lipstick','Best for sensitive skin','What are customers saying about Gentle Hydra-Gel Face Cleanser?']);
 // ---- tabs
+function togglePhoto(open){const p=$('photo'),b=$('photobtn');if(open===undefined)open=p.style.display==='none';p.style.display=open?'':'none';b.classList.toggle('open',open);b.setAttribute('aria-expanded',open)}
+$('photobtn').onclick=()=>togglePhoto();
 $('aclose').onclick=()=>document.querySelector('aside').classList.remove('open');
 // ---- results
 const vals=n=>[...document.querySelectorAll(`input[name=${n}]:checked`)].map(i=>i.value),chk=sel=>[...document.querySelectorAll(sel+' input:checked')].map(i=>i.value);
@@ -385,6 +391,7 @@ $('go').onclick=async()=>{const b=blob;$('go').disabled=true;const w=typing();
  try{const r=await fetch(API+'/analyze',{method:'POST',body:JSON.stringify({image:b64,media_type:'image/jpeg',consent:true,consult:consult()})});
   const j=await r.json();w.remove();
   clearPhoto();                               // delete immediately after analysis, success or not
+  togglePhoto(false);
   if(!r.ok){add(j.error||'Sorry, I couldn\'t check that photo. Please try again.','b');return}
   add('Thanks! I\'ve deleted your photo. Here\'s what I found.','b');showResult(j,'your photo');chips(j.suggestions||[])
  }catch(e){w.remove();clearPhoto();add('Sorry, I couldn\'t check that photo just now. It has been deleted. Please try again, or use the skin questions instead.','b')}};
