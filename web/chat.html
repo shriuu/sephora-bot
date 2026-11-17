@@ -366,6 +366,7 @@ function showResult(r,source){document.querySelector('aside').classList.remove('
   const g={};Object.entries(F).forEach(([k,v])=>{const l=L[String(f[k]).toLowerCase()];if(l)(g[l]=g[l]||[]).push(v)});
   const seen=['Noticeable','Moderate','Mild'].filter(l=>g[l]).map(l=>`${l}: ${g[l].join(', ')}`);
   if(seen.length)s+=`\n\nWhat I can see in your skin:\n`+seen.map(x=>'• '+x).join('\n');
+  if((a.observations||[]).length)s+=`\n\nWhat I noticed: ${a.observations.join(' ')}`;
   if((a.temporary||[]).length)s+=`\nThat may be temporary (${a.temporary.join(' and ')}), not your natural skin type.`;
   if(a.skin_tone)s+=`\n\nYour skin tone looks ${a.skin_tone}${a.undertone?` with ${a.undertone} undertones`:''}.`;
   const h=a.hair||{};if(h.visible)s+=`\n\nYour hair looks ${h.texture||'hard to call'}${['frizz','dryness','damage'].filter(k=>['moderate','notable'].includes(h[k])).length?', with some '+['frizz','dryness','damage'].filter(k=>['moderate','notable'].includes(h[k])).join(' and '):''}.`;

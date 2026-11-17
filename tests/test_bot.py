@@ -31,4 +31,21 @@ class T(unittest.TestCase):
     def test_no_false_did_you_mean(self):
         for q in ("What does niacinamide do?", "I have dry skin", "hello", "which products contain niacinamide?"):
             self.assertNotIn("didyoumean", self.rich(q))
+    def test_photo_describe_then_form(self):
+        from src import skin
+        calls = []
+        def fake(messages, fmt=None, temp=0.0, n=None):
+            calls.append(fmt)
+            if not fmt: return "Shiny forehead and nose with large pores. A few small bumps on the chin. Mild redness on the cheeks. Skin tone is medium with warm undertones."
+            return '{"usable": true, "findings": {"oiliness": "moderate", "blemishes": "mild", "redness": "mild"}, "skin_type": "oily", "skin_tone": "medium", "undertone": "warm"}'
+        old = skin._ollama; skin._ollama = fake; old_p = skin.provider; skin.provider = lambda: skin.LOCAL_NAME
+        try: a = skin.analyze_image("x", "image/jpeg")
+        finally: skin._ollama = old; skin.provider = old_p
+        self.assertEqual(calls, [None, "json"])                       # describe first, then the structured form
+        self.assertIn("oiliness_pores", a["concerns"]); self.assertTrue(a["observations"][0].startswith("Shiny forehead"))
+        self.assertEqual((a["skin_tone"], a["undertone"]), ("medium", "warm"))
+    def test_mild_findings_still_give_concerns(self):
+        from src import skin
+        a = skin.derive(skin.clean({"findings": {"oiliness": "mild", "redness": "mild"}, "skin_type": "unclear"}))
+        self.assertEqual(set(a["concerns"]), {"oiliness_pores", "redness_sensitivity"})
 if __name__ == "__main__": unittest.main()

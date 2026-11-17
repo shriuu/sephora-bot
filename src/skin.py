@@ -133,12 +133,35 @@ def provider():
     return None
 
 
-def _analyze_local(b64):
-    body = json.dumps({"model": LOCAL_MODEL, "stream": False, "format": "json", "options": {"temperature": 0},
-                       "messages": [{"role": "user", "content": PROMPT, "images": [b64]}]}).encode()
-    req = urllib.request.Request(LOCAL_URL + "/api/chat", data=body, headers={"Content-Type": "application/json"})
+DESCRIBE = """You are a cosmetic beauty assistant. Look closely at this photo and describe, in 4 to 6 short plain sentences, what is visible
+about the person's skin and hair. Cover: shiny or matte look, pore size, texture, any bumps or blemishes (roughly how many and where),
+redness, dark spots or uneven tone, dry or flaky patches, fine lines, skin tone and undertone, and the hair (texture, frizz, dryness) if visible.
+Name the area (forehead, cheeks, nose, chin). Describe only what you see; do not diagnose and do not name diseases.
+If no skin or hair is clearly visible, reply with exactly: NOT USABLE"""
+
+
+def _ollama(messages, fmt=None, temp=0.0, n=None):
+    opts = {"temperature": temp}
+    if n: opts["num_predict"] = n
+    body = {"model": LOCAL_MODEL, "stream": False, "options": opts, "messages": messages}
+    if fmt: body["format"] = fmt
+    req = urllib.request.Request(LOCAL_URL + "/api/chat", data=json.dumps(body).encode(), headers={"Content-Type": "application/json"})
     with urllib.request.urlopen(req, timeout=300) as r:   # localhost only; first call may be slow while the model loads
         return json.load(r)["message"]["content"]
+
+
+def _analyze_local(b64):
+    """Two steps: (1) free description of what is visible, (2) fill the structured form strictly from that description.
+    Describing first gives a small model something concrete to base each rating on, so results differ from photo to photo."""
+    desc = _ollama([{"role": "user", "content": DESCRIBE, "images": [b64]}], temp=0.2, n=260).strip()
+    if "NOT USABLE" in desc.upper(): return json.dumps({"usable": False})
+    form = PROMPT + "\n\nHere is a description of the photo:\n" + desc + "\n\nBase every field strictly on this description. Use \"none\" or \"unclear\" for anything it does not mention."
+    out = _ollama([{"role": "user", "content": form}], fmt="json")
+    m = re.search(r"\{.*\}", out, re.S)
+    a = json.loads(m.group(0)) if m else {}
+    sents = [x.strip() for x in re.split(r"(?<=[.!?])\s+", desc) if len(x.strip()) > 12]
+    if isinstance(a, dict): a["observations"] = [x[:170] for x in sents][:4]       # the person's own, specific wording
+    return json.dumps(a)
 
 
 def _analyze_openai(b64, media_type, model):
@@ -170,6 +193,8 @@ def derive(a):
         lv = LEVEL.get(str(f.get(area, "none")).lower(), 0)
         if lv: w[c] = max(w.get(c, 0), lv)
     for c in cs: w.setdefault(c, 2)
+    if not cs:    # nothing moderate: use the strongest mild signals (up to two) instead of falling back to one generic default
+        cs = [c for c, lv in sorted(w.items(), key=lambda x: -x[1]) if lv >= 1][:2]
     a["concerns"] = cs; a["weights"] = w
     return a
 

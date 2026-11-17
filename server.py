@@ -104,6 +104,8 @@ class H(BaseHTTPRequestHandler):
                     del img, data, body   # image bytes live only in this request's memory; nothing is stored
                 if not a.get("usable", True) and not (a.get("hair") or {}).get("visible"):
                     return self._send({"error": "I couldn't see your skin or hair clearly in that photo. Could you try again in bright, even light?"}, code=422)
+                if os.environ.get("DEBUG_ANALYSIS"):   # opt-in: print the derived findings (never the photo) so results can be compared across photos
+                    print("[analysis]", json.dumps({k: a.get(k) for k in ("skin_type", "skin_tone", "undertone", "findings", "temporary", "hair", "concerns", "confidence")}), file=sys.stderr, flush=True)
                 return self._send({"analysis": a, "deleted": True, **self._match(consult, a)})
         except RuntimeError as e:
             if str(e) == "NO_KEY": return self._send({"error": "Photo skin checks aren't available right now. You can still get personalised picks from the skin questions."}, code=503)
