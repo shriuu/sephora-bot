@@ -48,4 +48,12 @@ class T(unittest.TestCase):
         from src import skin
         a = skin.derive(skin.clean({"findings": {"oiliness": "mild", "redness": "mild"}, "skin_type": "unclear"}))
         self.assertEqual(set(a["concerns"]), {"oiliness_pores", "redness_sensitivity"})
+    def test_new_photo_points(self):
+        from src import skin
+        a = skin.derive(skin.clean({"findings": {"congestion": "moderate", "dark_circles": "notable", "dullness": "moderate"},
+                                    "zones": {"forehead_nose": "oily", "cheeks": "normal"}, "skin_type": "unclear",
+                                    "hair": {"visible": True, "thickness": "fine", "shine": "dull", "colour_treated": True, "scalp_flakes": "moderate"}}))
+        self.assertEqual(a["skin_type"], "combination")                      # zones differ -> combination
+        self.assertTrue({"congestion", "dark_circles", "dullness"} <= set(a["concerns"]))
+        self.assertEqual((a["hair"]["thickness"], a["hair"]["shine"], a["hair"]["colour_treated"]), ("fine", "dull", True))
 if __name__ == "__main__": unittest.main()

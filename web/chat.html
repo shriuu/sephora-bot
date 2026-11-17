@@ -262,7 +262,7 @@ aside h3{color:var(--berry)}
 </aside></main>
 <script>
 const OFFLINE=location.protocol==='file:'?'This page needs the server. Please open http://localhost:8000 (or the hosted site) instead of opening the file directly.':'The concierge is taking a short break and can\'t answer right now. Please check back a little later.';
-const API=(/^(localhost|127\.0\.0\.1|\[::1\])$/.test(location.hostname)?'':(window.API_BASE||'')).replace(/\/$/,''),$=id=>document.getElementById(id),log=$('log'),CONC={acne_blemishes:'Acne / blemishes',redness_sensitivity:'Redness / sensitivity',dark_spots:'Dark spots',fine_lines:'Fine lines',dullness:'Dullness',dehydration:'Dehydration',oiliness_pores:'Oil / pores'};
+const API=(/^(localhost|127\.0\.0\.1|\[::1\])$/.test(location.hostname)?'':(window.API_BASE||'')).replace(/\/$/,''),$=id=>document.getElementById(id),log=$('log'),CONC={acne_blemishes:'Acne / blemishes',redness_sensitivity:'Redness / sensitivity',dark_spots:'Dark spots',fine_lines:'Fine lines',dullness:'Dullness',dehydration:'Dehydration',oiliness_pores:'Oil / pores',congestion:'Blackheads / clogged pores',dark_circles:'Dark circles / puffiness'};
 if(API){const _f=window.fetch.bind(window);window.fetch=(u,o={})=>_f(u,{...o,headers:{...(o.headers||{}),'ngrok-skip-browser-warning':'1'}})}
 const HC={frizz:'Frizz',dryness:'Dryness',damage:'Damage',color_care:'Colour care',volume:'Volume',thinning:'Thinning',dry_scalp:'Dry scalp',oily_scalp:'Oily scalp',shine:'Shine'};
 $('hc').innerHTML=Object.entries(HC).map(([k,v])=>`<label class="chk"><input type="checkbox" value="${k}">${v}</label>`).join('');
@@ -362,14 +362,18 @@ function showResult(r,source){document.querySelector('aside').classList.remove('
   s=source==='your photo'?(p.skin_type?`From your photo, your skin looks ${p.skin_type}`:`I can't tell your skin type from a photo alone`):(p.skin_type?`Thanks for the details! Your skin sounds ${p.skin_type}`:`Thanks for the details!`);
   s+=fc.length?(p.skin_type?`, and I'd focus on ${fc.join(', ')}.`:`, but I'd focus on ${fc.join(', ')}.`):'.'}
  else s=source==='your photo'?'Thanks for the photo!':'Thanks for the details!';
- if(a){const F={texture_pores:'texture and pores',blemishes:'blemishes',pigmentation:'dark spots or uneven tone',redness:'redness',fine_lines:'fine lines',dryness:'dryness',oiliness:'oiliness'},f=a.findings||{},L={mild:'Mild',moderate:'Moderate',notable:'Noticeable'};
+ if(a){const F={texture_pores:'texture and pores',blemishes:'blemishes',pigmentation:'dark spots or uneven tone',redness:'redness',fine_lines:'fine lines',dryness:'dryness',oiliness:'oiliness',dullness:'dullness',congestion:'blackheads or clogged pores',dark_circles:'dark circles under the eyes',puffiness:'under-eye puffiness',lip_dryness:'dry lips'},f=a.findings||{},L={mild:'Mild',moderate:'Moderate',notable:'Noticeable'};
   const g={};Object.entries(F).forEach(([k,v])=>{const l=L[String(f[k]).toLowerCase()];if(l)(g[l]=g[l]||[]).push(v)});
   const seen=['Noticeable','Moderate','Mild'].filter(l=>g[l]).map(l=>`${l}: ${g[l].join(', ')}`);
   if(seen.length)s+=`\n\nWhat I can see in your skin:\n`+seen.map(x=>'• '+x).join('\n');
   if((a.observations||[]).length)s+=`\n\nWhat I noticed: ${a.observations.join(' ')}`;
   if((a.temporary||[]).length)s+=`\nThat may be temporary (${a.temporary.join(' and ')}), not your natural skin type.`;
+  const z=a.zones||{};if(z.forehead_nose&&z.cheeks)s+=`\n\nForehead and nose look ${z.forehead_nose}, cheeks look ${z.cheeks}${a.type_from_zones?', which points to '+(p.skin_type||'a mixed skin type')+' skin':''}.`;
+  if(a.freckles)s+=`\nI can also see freckles, which are lovely and need no fixing.`;
   if(a.skin_tone)s+=`\n\nYour skin tone looks ${a.skin_tone}${a.undertone?` with ${a.undertone} undertones`:''}.`;
-  const h=a.hair||{};if(h.visible)s+=`\n\nYour hair looks ${h.texture||'hard to call'}${['frizz','dryness','damage'].filter(k=>['moderate','notable'].includes(h[k])).length?', with some '+['frizz','dryness','damage'].filter(k=>['moderate','notable'].includes(h[k])).join(' and '):''}.`;
+  const h=a.hair||{};if(h.visible){const bits=[];if(h.texture)bits.push(h.texture);if(h.thickness)bits.push(h.thickness+' strands');if(h.shine&&h.shine!=='normal')bits.push(h.shine==='shiny'?'shiny':'a bit dull');
+   const prob=['frizz','dryness','damage'].filter(k=>['moderate','notable'].includes(h[k]));let t=`Your hair looks ${bits.join(', ')||'hard to call'}`;if(prob.length)t+=`, with some ${prob.join(' and ')}`;
+   if(h.colour_treated)t+=`, and it looks colour-treated`;if(h.greying&&h.greying!=='none')t+=`, with ${h.greying==='lots'?'a lot of':'some'} greying`;if(['moderate','notable'].includes(h.scalp_flakes))t+=`, and I can see some flakes on the scalp`;s+=`\n\n${t}.`}
   if(a.confidence==='low')s+=`\n\nTo be honest, I'm not very sure from this photo, so treat it as a starting point.`}
  if(p.avoid&&p.avoid.length)s+=`\n\nI've left out anything with ${p.avoid.join(', ')}.`;
  add(s,'b');

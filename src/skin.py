@@ -26,6 +26,8 @@ CONCERNS = {
     "dullness": ["vitamin c", "ascorb", "glycolic", "lactic acid", "mandelic"],
     "dehydration": ["hyaluronic", "glycerin", "ceramide", "squalane", "panthenol"],
     "oiliness_pores": ["niacinamide", "salicylic", "zinc", "clay", "kaolin"],
+    "congestion": ["salicylic", "clay", "kaolin", "glycolic", "charcoal", "bha"],
+    "dark_circles": ["caffeine", "vitamin k", "niacinamide", "vitamin c", "ascorb", "peptide", "retinol"],
 }
 TYPE_DEFAULTS = {"oily": ["oiliness_pores"], "dry": ["dehydration"], "combination": ["oiliness_pores", "dehydration"],
                  "normal": ["dehydration"]}
@@ -96,13 +98,17 @@ PROMPT = """You are a cosmetic beauty assistant doing a visual check of a photo,
 Describe ONLY visible, cosmetic characteristics. Do NOT diagnose any medical condition or name diseases.
 Rate each area from the photo as "none", "mild", "moderate" or "notable". Reply with JSON only:
 {"usable": bool (false if no clearly visible skin AND no visible hair, or the photo is too dark or blurry),
- "findings": {"texture_pores": "..", "blemishes": "..", "pigmentation": "..", "redness": "..", "fine_lines": "..", "dryness": "..", "oiliness": ".."},
+ "findings": {"texture_pores": "..", "blemishes": "..", "pigmentation": "..", "redness": "..", "fine_lines": "..", "dryness": "..", "oiliness": "..",
+              "dullness": "..", "congestion": ".. (blackheads / clogged pores)", "dark_circles": "..", "puffiness": ".. (under the eyes)", "lip_dryness": ".."},
+ "zones": {"forehead_nose": "oily|normal|dry|unclear", "cheeks": "oily|normal|dry|unclear"},
+ "freckles": true or false,
  "skin_type": "oily|dry|combination|normal|unclear",
  "skin_tone": "fair|light|medium|tan|deep|unclear",
  "undertone": "warm|cool|neutral|olive|unclear",
  "temporary": subset of ["dehydration","irritation"] (short-term states, not the natural skin type),
- "hair": {"visible": bool, "texture": "straight|wavy|curly|coily|unclear", "frizz": "none|mild|moderate|notable",
-          "dryness": "none|mild|moderate|notable", "damage": "none|mild|moderate|notable"},
+ "hair": {"visible": bool, "texture": "straight|wavy|curly|coily|unclear", "thickness": "fine|medium|thick|unclear",
+          "shine": "dull|normal|shiny|unclear", "frizz": "none|mild|moderate|notable", "dryness": "none|mild|moderate|notable",
+          "damage": "none|mild|moderate|notable", "colour_treated": true or false, "greying": "none|some|lots", "scalp_flakes": "none|mild|moderate|notable"},
  "observations": [up to 4 short plain-language notes of what is visible],
  "unusual_spot": true only if a spot or mark looks unusual enough that an in-person check would be sensible, else false,
  "confidence": "low|medium|high"}
@@ -133,10 +139,12 @@ def provider():
     return None
 
 
-DESCRIBE = """You are a cosmetic beauty assistant. Look closely at this photo and describe, in 4 to 6 short plain sentences, what is visible
-about the person's skin and hair. Cover: shiny or matte look, pore size, texture, any bumps or blemishes (roughly how many and where),
-redness, dark spots or uneven tone, dry or flaky patches, fine lines, skin tone and undertone, and the hair (texture, frizz, dryness) if visible.
-Name the area (forehead, cheeks, nose, chin). Describe only what you see; do not diagnose and do not name diseases.
+DESCRIBE = """You are a cosmetic beauty assistant. Look closely at this photo and describe, in 6 to 8 short plain sentences, what is visible
+about the person's skin and hair. Cover: shiny or matte look and WHERE (forehead and nose versus cheeks), pore size, texture and roughness,
+bumps or blemishes (roughly how many and where), blackheads or clogged pores, redness, dark spots or uneven tone, freckles, dullness or glow,
+dry or flaky patches, fine lines, dark circles or puffiness under the eyes, how the lips look (dry or chapped), skin tone and undertone, and the hair:
+texture, thickness (fine, medium or thick), shine, frizz, dryness, whether it looks coloured or greying, and any flakes visible on the scalp.
+Name the area (forehead, cheeks, nose, chin, under-eyes, lips). Describe only what you see; do not diagnose and do not name diseases.
 If no skin or hair is clearly visible, reply with exactly: NOT USABLE"""
 
 
@@ -176,11 +184,22 @@ def _analyze_openai(b64, media_type, model):
 
 LEVEL = {"none": 0, "mild": 1, "moderate": 2, "notable": 3}
 AREA = {"blemishes": "acne_blemishes", "redness": "redness_sensitivity", "pigmentation": "dark_spots",
-        "fine_lines": "fine_lines", "dryness": "dehydration", "oiliness": "oiliness_pores", "texture_pores": "oiliness_pores"}
+        "fine_lines": "fine_lines", "dryness": "dehydration", "oiliness": "oiliness_pores", "texture_pores": "oiliness_pores",
+        "dullness": "dullness", "congestion": "congestion", "dark_circles": "dark_circles", "puffiness": "dark_circles"}
+
+
+def zone_type(z):
+    """Forehead/nose vs cheeks: different zones point to combination skin, which a single overall guess often misses."""
+    t, c = (z or {}).get("forehead_nose"), (z or {}).get("cheeks")
+    if t not in ("oily", "normal", "dry") or c not in ("oily", "normal", "dry"): return None
+    if t == c: return t
+    return "combination" if "oily" in (t, c) else None
 
 
 def derive(a):
     """Turn the visual findings into skincare concerns (cosmetic, not diagnostic)."""
+    if a.get("skin_type") not in SKIN_TYPES and zone_type(a.get("zones")):
+        a["skin_type"] = zone_type(a.get("zones")); a["type_from_zones"] = True
     f = a.get("findings") or {}
     cs = [c for c in a.get("concerns", []) if c in CONCERNS]
     for area, c in AREA.items():
@@ -204,7 +223,8 @@ def clean(a):
     if not isinstance(a, dict): return {"usable": False, "findings": {}, "skin_type": "unclear", "temporary": [], "observations": [], "confidence": "low"}
     f = a.get("findings") if isinstance(a.get("findings"), dict) else {}
     fx = {}
-    for k in ("texture_pores", "blemishes", "pigmentation", "redness", "fine_lines", "dryness", "oiliness"):
+    for k in ("texture_pores", "blemishes", "pigmentation", "redness", "fine_lines", "dryness", "oiliness",
+              "dullness", "congestion", "dark_circles", "puffiness", "lip_dryness"):
         v = f.get(k, "none")
         v = "mild" if v is True else str(v).strip().lower()
         fx[k] = v if v in LEVEL else "none"
@@ -217,9 +237,14 @@ def clean(a):
     h = a.get("hair") if isinstance(a.get("hair"), dict) else {}
     hx = {"visible": h.get("visible") is True,
           "texture": next((x for x in ("straight", "wavy", "curly", "coily") if x == str(h.get("texture", "")).strip().lower()), None)}
-    for k in ("frizz", "dryness", "damage"):
+    for k in ("frizz", "dryness", "damage", "scalp_flakes"):
         v = str(h.get(k, "none")).strip().lower(); hx[k] = v if v in LEVEL else "none"
-    return {"usable": a.get("usable", True) is not False, "findings": fx, "skin_type": st, "skin_tone": tone, "undertone": under, "hair": hx,
+    pick1 = lambda key, opts: next((x for x in opts if x == str(h.get(key, "")).strip().lower()), None)
+    hx.update({"thickness": pick1("thickness", ("fine", "medium", "thick")), "shine": pick1("shine", ("dull", "normal", "shiny")),
+               "greying": pick1("greying", ("none", "some", "lots")), "colour_treated": h.get("colour_treated") is True})
+    z = a.get("zones") if isinstance(a.get("zones"), dict) else {}
+    zx = {k: (str(z.get(k, "")).strip().lower() if str(z.get(k, "")).strip().lower() in ("oily", "normal", "dry") else None) for k in ("forehead_nose", "cheeks")}
+    return {"usable": a.get("usable", True) is not False, "findings": fx, "zones": zx, "freckles": a.get("freckles") is True, "skin_type": st, "skin_tone": tone, "undertone": under, "hair": hx,
             "temporary": [t for t in map(str, tmp) if t in ("dehydration", "irritation")],
             "observations": [str(o)[:160] for o in obs][:4], "unusual_spot": a.get("unusual_spot") is True,
             "confidence": conf if conf in ("low", "medium", "high") else "low",

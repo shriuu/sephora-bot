@@ -51,8 +51,12 @@ class H(BaseHTTPRequestHandler):
                 hr["type"] = hr.get("type") or h.get("texture")
                 lv = {"mild": 1, "moderate": 2, "notable": 3}
                 hc = [k for k in ("frizz", "dryness", "damage") if lv.get(h.get(k), 0) >= 2]
+                if h.get("scalp_flakes") in ("moderate", "notable"): hc.append("dry_scalp")
+                if h.get("shine") == "dull": hc.append("shine")
+                if h.get("thickness") == "fine": hc.append("volume")
+                if h.get("colour_treated"): hc.append("color_care")
                 hr["concerns"] = list(dict.fromkeys(hc + [x for x in hr.get("concerns", []) if x in match.HAIR_TAGS]))
-                hr["weights"] = {**{k: lv[h[k]] for k in hc}, **{x: 3 for x in c.get("hair", {}).get("concerns", [])}}
+                hr["weights"] = {**{k: lv.get(h.get(k), 2) for k in hc}, **{x: 3 for x in c.get("hair", {}).get("concerns", [])}}
         b = dict(c.get("body") or {})
         if not b.get("concerns") and sk.get("skin_type") in ("dry", "normal"): b["concerns"] = ["dryness"]
         b["sensitive"] = b.get("sensitive") or "fragrance" in sk.get("avoid", []) or "redness_sensitivity" in sk.get("concerns", [])
@@ -105,7 +109,7 @@ class H(BaseHTTPRequestHandler):
                 if not a.get("usable", True) and not (a.get("hair") or {}).get("visible"):
                     return self._send({"error": "I couldn't see your skin or hair clearly in that photo. Could you try again in bright, even light?"}, code=422)
                 if os.environ.get("DEBUG_ANALYSIS"):   # opt-in: print the derived findings (never the photo) so results can be compared across photos
-                    print("[analysis]", json.dumps({k: a.get(k) for k in ("skin_type", "skin_tone", "undertone", "findings", "temporary", "hair", "concerns", "confidence")}), file=sys.stderr, flush=True)
+                    print("[analysis]", json.dumps({k: a.get(k) for k in ("skin_type", "zones", "skin_tone", "undertone", "findings", "freckles", "temporary", "hair", "concerns", "confidence")}), file=sys.stderr, flush=True)
                 return self._send({"analysis": a, "deleted": True, **self._match(consult, a)})
         except RuntimeError as e:
             if str(e) == "NO_KEY": return self._send({"error": "Photo skin checks aren't available right now. You can still get personalised picks from the skin questions."}, code=503)
