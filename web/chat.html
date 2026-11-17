@@ -110,6 +110,9 @@ select{width:100%;padding:8px;border-radius:8px;border:1px solid #bbb;margin:4px
 .thanks{text-align:center;padding:30px 22px 34px}.thanks .tick{width:56px;height:56px;border-radius:50%;background:#1d8a4f;color:#fff;font-size:30px;line-height:56px;margin:0 auto 12px}
 
 .aclose{display:none}
+.match-mode aside{box-shadow:inset 0 0 0 3px var(--rose,#e8458b)}
+.match-mode aside:before{content:'👉 Start here';display:block;background:linear-gradient(90deg,#d6246e,#ff6a4d);color:#fff;font-weight:700;font-size:13px;letter-spacing:.04em;padding:6px 12px;margin:-18px -18px 14px;text-align:center}
+@media(max-width:820px){.match-mode aside:before{display:none}}
 .photobtn{width:100%;display:flex;justify-content:space-between;align-items:center;gap:8px;background:#fff;color:var(--berry,#7a1646);border:1.5px solid #e8a9c6;border-radius:12px;padding:12px 14px;font-size:14.5px;font-weight:600;cursor:pointer;box-shadow:0 2px 8px rgba(122,22,70,.08)}
 .photobtn:hover{background:#fff5fa}.photobtn i{font-style:normal;transition:transform .2s}.photobtn.open i{transform:rotate(180deg)}
 #photo{margin-top:10px}
@@ -324,8 +327,10 @@ async function ask(t){add(t,'u');const w=typing();
  try{const r=await fetch(API+'/ask',{method:'POST',body:t,headers:{'X-Session':SID}});const j=await r.json();w.textContent=j.text;if(j.detail)detailCard(j.detail);if(j.products&&j.products.length)cards(j.products);chips(j.suggestions||[])}catch(e){w.textContent=OFFLINE}}
 $('f').onsubmit=e=>{e.preventDefault();const t=$('q').value.trim();if(t){$('q').value='';ask(t)}};
 function chips(l){$('chips').innerHTML='';if(l.length)$('chips').insertAdjacentHTML('afterbegin','<span style="font-size:12px;color:#777;align-self:center">Suggested:</span>');l.forEach(t=>{const b=document.createElement('button');b.textContent=t;b.onclick=()=>ask(t);$('chips').append(b)})}
-add("Hi, I'm your Sephora Beauty Concierge ✨ Looking for a particular product or shade, curious what an ingredient does, or not sure where to start? Just ask. You can also tell me about your skin, or try the skin check on the right, and I'll find your match.",'b');
-chips(['Which products contain niacinamide?','Recommend products for oily skin','I want a red wine lipstick','Best for sensitive skin','What are customers saying about Gentle Hydra-Gel Face Cleanser?']);
+const MATCH=['match','1'].includes(new URLSearchParams(location.search).get('mode')||new URLSearchParams(location.search).get('panel')||'');
+if(MATCH){document.body.classList.add('match-mode');add("Let's find your match ✨ Tell me a little about your skin in the panel on the right: how it feels, your main concerns, and anything you'd like to avoid. Then tap “Get my picks”. You can also pick hair, makeup, fragrance or body, or add a photo for a closer look.",'b');chips(['What does niacinamide do?','Best for sensitive skin','Recommend products for dry skin','I need something for my hair'])}
+else{add("Hi, I'm your Sephora Beauty Concierge ✨ Looking for a particular product or shade, curious what an ingredient does, or not sure where to start? Just ask. You can also tell me about your skin, or try the skin check on the right, and I'll find your match.",'b');
+chips(['Which products contain niacinamide?','Recommend products for oily skin','I want a red wine lipstick','Best for sensitive skin','What are customers saying about Gentle Hydra-Gel Face Cleanser?']);}
 // ---- tabs
 function togglePhoto(open){const p=$('photo'),b=$('photobtn');if(open===undefined)open=p.style.display==='none';p.style.display=open?'':'none';b.classList.toggle('open',open);b.setAttribute('aria-expanded',open)}
 $('photobtn').onclick=()=>togglePhoto();
@@ -399,9 +404,9 @@ function boot(){fetch(API+'/config').then(r=>r.json()).then(c=>{if(boot.t){clear
 boot();
 // links from the welcome page: ?q=<starter question>  /  ?panel=1 (open the skin match panel)
 (()=>{const qp=new URLSearchParams(location.search),q=(qp.get('q')||'').slice(0,200).trim();
- if(qp.get('panel'))document.querySelector('aside').classList.add('open');
+ if(MATCH){document.querySelector('aside').classList.add('open');setTimeout(()=>{const f=$('pst');if(f&&innerWidth>820)f.focus({preventScroll:true})},300)}
  if(q)setTimeout(()=>ask(q),400);
- if(q||qp.get('panel'))history.replaceState(null,'',location.pathname)})();
+ if(q||MATCH)history.replaceState(null,'',location.pathname)})();
 
 // ---- checkout (details stay in this tab's memory only; nothing is sent anywhere)
 const co={step:1,info:{},ship:'std',pay:'cod',done:null};
