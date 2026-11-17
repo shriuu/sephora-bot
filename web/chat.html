@@ -110,6 +110,13 @@ select{width:100%;padding:8px;border-radius:8px;border:1px solid #bbb;margin:4px
 .thanks{text-align:center;padding:30px 22px 34px}.thanks .tick{width:56px;height:56px;border-radius:50%;background:#1d8a4f;color:#fff;font-size:30px;line-height:56px;margin:0 auto 12px}
 
 .aclose{display:none}
+.dd{border:1.5px solid #ecc3d6;border-radius:12px;margin:8px 0;background:#fff}
+.dd summary{list-style:none;cursor:pointer;display:flex;align-items:center;gap:10px;padding:10px 12px;font-size:14px}
+.dd summary::-webkit-details-marker{display:none}
+.dd summary:after{content:'▾';margin-left:auto;color:#7a1646;transition:transform .15s}.dd[open] summary:after{transform:rotate(180deg)}
+.ddl{font-weight:600;color:#3b1530;white-space:nowrap}.ddv{color:#999;font-size:13px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:0}
+.ddv.has{color:#7a1646;font-weight:600}.dd[open]{border-color:#e8458b}
+.dd .cc{padding:2px 12px 10px;max-height:230px;overflow:auto}
 #camview{position:fixed;inset:0;z-index:80;background:#000;display:none;flex-direction:column}
 #camview video{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;border-radius:0!important;max-height:none!important;background:#000}
 .camguide{position:absolute;inset:0;display:grid;place-items:center;pointer-events:none}
@@ -216,16 +223,14 @@ aside h3{color:var(--berry)}
   <label class="cp"><input type="checkbox" value="body">Body</label>
  </div>
  <div class="qb" data-cat="skin"><label>How does your skin usually feel?<select id="pst"><option value="">Not sure</option><option>oily</option><option>dry</option><option>combination</option><option>normal</option></select></label>
- <div class="note" style="margin:6px 0 2px">Main concerns</div><div class="cc" id="pc"></div>
-<div class="note" style="margin:6px 0 2px">Ingredients to avoid (allergies / sensitivities)</div>
-  <div class="cc"><label class="chk"><input type="checkbox" name="av" value="fragrance">Fragrance</label><label class="chk"><input type="checkbox" name="av" value="alcohol">Drying alcohol</label><label class="chk"><input type="checkbox" name="av" value="essential oils">Essential oils</label></div>
+ <details class="dd" data-empty="Select"><summary><span class="ddl">Main concerns</span><span class="ddv">Select</span></summary><div class="cc" id="pc"></div></details>
+<details class="dd" data-empty="None"><summary><span class="ddl">Ingredients to avoid</span><span class="ddv">None</span></summary><div class="cc"><label class="chk"><input type="checkbox" name="av" value="fragrance">Fragrance</label><label class="chk"><input type="checkbox" name="av" value="alcohol">Drying alcohol</label><label class="chk"><input type="checkbox" name="av" value="essential oils">Essential oils</label></div></details>
 
  </div>
  <div class="qb" data-cat="hair" style="display:none">
   <label>Hair type<select id="htype"><option value="">Not sure</option><option>straight</option><option>wavy</option><option>curly</option><option>coily</option></select></label>
-  <div class="note" style="margin:6px 0 2px">Hair concerns</div><div class="cc" id="hc"></div>
-  <div class="note" style="margin:6px 0 2px">Avoid</div>
-  <div class="cc"><label class="chk"><input type="checkbox" name="hav" value="sulfates">Sulfates</label><label class="chk"><input type="checkbox" name="hav" value="silicones">Silicones</label><label class="chk"><input type="checkbox" name="hav" value="fragrance">Fragrance</label></div>
+  <details class="dd" data-empty="Select"><summary><span class="ddl">Hair concerns</span><span class="ddv">Select</span></summary><div class="cc" id="hc"></div></details>
+  <details class="dd" data-empty="None"><summary><span class="ddl">Ingredients to avoid</span><span class="ddv">None</span></summary><div class="cc"><label class="chk"><input type="checkbox" name="hav" value="sulfates">Sulfates</label><label class="chk"><input type="checkbox" name="hav" value="silicones">Silicones</label><label class="chk"><input type="checkbox" name="hav" value="fragrance">Fragrance</label></div></details>
  </div>
  <div class="qb" data-cat="makeup" style="display:none">
   <label>Skin tone<select id="mtone"><option value="">Not sure</option><option>fair</option><option>light</option><option>medium</option><option>tan</option><option>deep</option></select></label>
@@ -233,12 +238,10 @@ aside h3{color:var(--berry)}
   <label>Finish<select id="mfin"><option value="">Any</option><option>matte</option><option>natural</option><option>radiant</option></select></label>
  </div>
  <div class="qb" data-cat="fragrance" style="display:none">
-  <div class="note" style="margin:0 0 2px">Scents you like</div>
-  <div class="cc"><label class="chk"><input type="checkbox" name="sc" value="floral">Floral</label><label class="chk"><input type="checkbox" name="sc" value="fresh">Fresh</label><label class="chk"><input type="checkbox" name="sc" value="woody">Woody</label><label class="chk"><input type="checkbox" name="sc" value="warm">Warm &amp; spicy</label></div>
+  <details class="dd" data-empty="Any"><summary><span class="ddl">Scents you like</span><span class="ddv">Any</span></summary><div class="cc"><label class="chk"><input type="checkbox" name="sc" value="floral">Floral</label><label class="chk"><input type="checkbox" name="sc" value="fresh">Fresh</label><label class="chk"><input type="checkbox" name="sc" value="woody">Woody</label><label class="chk"><input type="checkbox" name="sc" value="warm">Warm &amp; spicy</label></div></details>
  </div>
  <div class="qb" data-cat="body" style="display:none">
-  <div class="note" style="margin:0 0 2px">Body concerns</div>
-  <div class="cc"><label class="chk"><input type="checkbox" name="bc" value="dryness">Dryness</label><label class="chk"><input type="checkbox" name="bc" value="dullness">Dullness / rough texture</label><label class="chk"><input type="checkbox" name="bc" value="firmness">Firmness</label><label class="chk"><input type="checkbox" id="bsens">Fragrance-free only</label></div>
+  <details class="dd" data-empty="Select"><summary><span class="ddl">Body concerns</span><span class="ddv">Select</span></summary><div class="cc"><label class="chk"><input type="checkbox" name="bc" value="dryness">Dryness</label><label class="chk"><input type="checkbox" name="bc" value="dullness">Dullness / rough texture</label><label class="chk"><input type="checkbox" name="bc" value="firmness">Firmness</label><label class="chk"><input type="checkbox" id="bsens">Fragrance-free only</label></div></details>
  </div>
  <div class="row"><button id="qgo">Get my picks</button></div>
 </div>
@@ -351,6 +354,10 @@ $('photobtn').onclick=()=>{const opening=$('photo').style.display==='none';toggl
 $('aclose').onclick=()=>document.querySelector('aside').classList.remove('open');
 // ---- results
 const vals=n=>[...document.querySelectorAll(`input[name=${n}]:checked`)].map(i=>i.value),chk=sel=>[...document.querySelectorAll(sel+' input:checked')].map(i=>i.value);
+function ddUpdate(d){const on=[...d.querySelectorAll('input:checked')].map(i=>i.parentElement.textContent.trim()),v=d.querySelector('.ddv');
+ v.textContent=!on.length?d.dataset.empty:on.length<=2?on.join(', '):on.slice(0,2).join(', ')+' +'+(on.length-2);v.classList.toggle('has',on.length>0)}
+document.querySelectorAll('.dd').forEach(d=>{d.addEventListener('change',()=>ddUpdate(d));
+ d.addEventListener('toggle',()=>{if(d.open)document.querySelectorAll('.dd[open]').forEach(o=>{if(o!==d)o.open=false})})});   // one open at a time keeps the panel short
 function consult(){return {cats:chk('#catpick'),skin:{skin_type:$('pst').value,concerns:chk('#pc'),avoid:vals('av')},hair:{type:$('htype').value,concerns:chk('#hc'),avoid:vals('hav')},
  makeup:{tone:$('mtone').value,undertone:$('mund').value,finish:$('mfin').value},fragrance:{scent:vals('sc')},body:{concerns:vals('bc'),sensitive:$('bsens').checked}}}
 document.querySelectorAll('#catpick input').forEach(i=>i.onchange=()=>{if(!chk('#catpick').length)i.checked=true;
