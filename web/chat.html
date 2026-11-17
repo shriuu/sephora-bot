@@ -113,7 +113,8 @@ select{width:100%;padding:8px;border-radius:8px;border:1px solid #bbb;margin:4px
 #camview{position:fixed;inset:0;z-index:80;background:#000;display:none;flex-direction:column}
 #camview video{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;border-radius:0!important;max-height:none!important;background:#000}
 .camguide{position:absolute;inset:0;display:grid;place-items:center;pointer-events:none}
-.camguide i{width:min(62vw,300px);aspect-ratio:3/4;border:3px dashed rgba(255,255,255,.75);border-radius:50%;box-shadow:0 0 0 100vmax rgba(0,0,0,.28)}
+.camguide{padding-bottom:max(70px,9vh)}   /* keeps the oval clear of the shutter row */
+.camguide i{height:min(74vh,118vw);aspect-ratio:3/4;max-width:92vw;border:3px dashed rgba(255,255,255,.85);border-radius:50%;box-shadow:0 0 0 100vmax rgba(0,0,0,.42)}
 .camhint{position:absolute;top:max(18px,env(safe-area-inset-top));left:0;right:0;text-align:center;color:#fff;font-size:14px;text-shadow:0 1px 4px rgba(0,0,0,.7)}
 .camctl{position:absolute;left:0;right:0;bottom:0;display:flex;align-items:center;justify-content:space-around;padding:22px 16px calc(26px + env(safe-area-inset-bottom));background:linear-gradient(transparent,rgba(0,0,0,.65))}
 .camctl button.camcancel{background:none;border:0;color:#fff;font-size:16px;width:90px;cursor:pointer;padding:10px 0}
@@ -249,7 +250,7 @@ aside h3{color:var(--berry)}
  <div id="drop">Drop a bare-face photo here<br>or click to choose<input id="file" type="file" accept="image/*" hidden></div>
  <div class="row" id="camrow"><button class="sec" id="cam">📷 Use camera</button><button class="sec" id="cam2" style="display:none">📱 Open phone camera app</button></div>
  <div id="camview" style="display:none" role="dialog" aria-label="Camera"><video id="vid" playsinline muted style="transform:scaleX(-1)"></video>
-  <div class="camguide" aria-hidden="true"><i></i></div><div class="camhint">Face the light · no makeup · fill the oval</div>
+  <div class="camguide" aria-hidden="true"><i></i></div><div class="camhint">Move in close so your face fills the oval · face the light · no makeup</div>
   <div class="camctl"><button id="camoff" class="camcancel">Cancel</button><button id="snap" aria-label="Take photo"><span></span></button><button id="camup" class="camcancel">Upload</button></div></div>
  <input id="capfile" type="file" accept="image/*" capture="user" hidden>
  <img id="prev" alt="">
