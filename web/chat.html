@@ -333,7 +333,9 @@ else{add("Hi, I'm your Sephora Beauty Concierge ✨ Looking for a particular pro
 chips(['Which products contain niacinamide?','Recommend products for oily skin','I want a red wine lipstick','Best for sensitive skin','What are customers saying about Gentle Hydra-Gel Face Cleanser?']);}
 // ---- tabs
 function togglePhoto(open){const p=$('photo'),b=$('photobtn');if(open===undefined)open=p.style.display==='none';p.style.display=open?'':'none';b.classList.toggle('open',open);b.setAttribute('aria-expanded',open)}
-$('photobtn').onclick=()=>togglePhoto();
+$('photobtn').onclick=()=>{const opening=$('photo').style.display==='none';togglePhoto(opening);
+ if(opening){if(!blob&&!stream)$('cam').click();setTimeout(()=>$('photo').scrollIntoView({behavior:'smooth',block:'start'}),120)}
+ else{camTok++;if(stream)stopCam()}};
 $('aclose').onclick=()=>document.querySelector('aside').classList.remove('open');
 // ---- results
 const vals=n=>[...document.querySelectorAll(`input[name=${n}]:checked`)].map(i=>i.value),chk=sel=>[...document.querySelectorAll(sel+' input:checked')].map(i=>i.value);
@@ -367,11 +369,12 @@ function showResult(r,source){document.querySelector('aside').classList.remove('
 $('qgo').onclick=async()=>{const w=typing();
  try{const r=await fetch(API+'/match',{method:'POST',body:JSON.stringify(consult())});w.remove();const j=await r.json();showResult(j,'your answers');chips(j.suggestions||[])}catch(e){w.textContent=OFFLINE}};
 // ---- camera (stream is stopped as soon as a photo is taken or cancelled)
-let stream=null,src='file';
-function stopCam(){if(stream){stream.getTracks().forEach(t=>t.stop());stream=null}$('vid').srcObject=null;$('camview').style.display='none';if(!blob){$('camrow').style.display='';$('drop').style.display=''}}
-$('cam').onclick=async()=>{src='cam';try{stream=await navigator.mediaDevices.getUserMedia({video:{facingMode:'user',width:{ideal:1280}},audio:false});
-  $('vid').srcObject=stream;await $('vid').play();$('camview').style.display='';$('drop').style.display='none';$('camrow').style.display='none'}
- catch(e){add('I couldn\'t access the camera ('+(e.name==='NotAllowedError'?'permission denied — allow it in your browser\'s address bar':'no camera found')+'). You can upload a photo instead.','b')}};
+let stream=null,src='file',camTok=0;   // camTok: lets a late-starting camera cancel itself if the section was closed meanwhile
+function stopCam(){camTok++;if(stream){stream.getTracks().forEach(t=>t.stop());stream=null}$('vid').srcObject=null;$('camview').style.display='none';if(!blob){$('camrow').style.display='';$('drop').style.display=''}}
+$('cam').onclick=async()=>{src='cam';const my=++camTok;try{const st=await navigator.mediaDevices.getUserMedia({video:{facingMode:'user',width:{ideal:1280}},audio:false});
+  if(camTok!==my||$('photo').style.display==='none'){st.getTracks().forEach(t=>t.stop());return}   // closed while starting: switch it straight off
+  stream=st;$('vid').srcObject=stream;await $('vid').play();$('camview').style.display='';$('drop').style.display='none';$('camrow').style.display='none';setTimeout(()=>$('camview').scrollIntoView({behavior:'smooth',block:'nearest'}),100)}
+ catch(e){add('I couldn\'t access the camera ('+(e.name==='NotAllowedError'?'permission denied — allow it in your browser\'s address bar':'no camera found')+'). You can upload a photo instead.','b');$('drop').style.display='';$('camrow').style.display='';$('drop').scrollIntoView({behavior:'smooth',block:'nearest'})}};
 $('camoff').onclick=stopCam;
 $('snap').onclick=async()=>{const v=$('vid'),s=Math.min(1,1024/Math.max(v.videoWidth,v.videoHeight)),cv=document.createElement('canvas');
  cv.width=v.videoWidth*s;cv.height=v.videoHeight*s;cv.getContext('2d').drawImage(v,0,0,cv.width,cv.height);
@@ -384,7 +387,7 @@ async function load(f){if(!f||!f.type.startsWith('image/'))return;
  const bmp=await createImageBitmap(f),s=Math.min(1,1024/Math.max(bmp.width,bmp.height)),cv=document.createElement('canvas');
  cv.width=bmp.width*s;cv.height=bmp.height*s;cv.getContext('2d').drawImage(bmp,0,0,cv.width,cv.height);
  setBlob(await new Promise(r=>cv.toBlob(r,'image/jpeg',.85)))}
-function setBlob(b){blob=b;$('retake').style.display='';$('prev').src=URL.createObjectURL(blob);$('prev').style.display='block';$('drop').style.display='none';$('camrow').style.display='none';$('del').disabled=false;$('go').disabled=!$('consent').checked}
+function setBlob(b){blob=b;$('retake').style.display='';$('prev').src=URL.createObjectURL(blob);$('prev').style.display='block';$('drop').style.display='none';$('camrow').style.display='none';$('del').disabled=false;$('go').disabled=!$('consent').checked;setTimeout(()=>$('go').scrollIntoView({behavior:'smooth',block:'nearest'}),150)}
 $('drop').onclick=()=>{src='file';$('file').click()};$('file').onchange=e=>load(e.target.files[0]);
 $('drop').ondragover=e=>{e.preventDefault();$('drop').classList.add('over')};$('drop').ondragleave=()=>$('drop').classList.remove('over');
 $('drop').ondrop=e=>{e.preventDefault();$('drop').classList.remove('over');load(e.dataTransfer.files[0])};
